@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics from the reviewed workbook. All remaining domains below are planned and have no tables yet.
+Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. All later domains below remain planned.
 
 ## Implemented Phase 2 foundation
 
@@ -10,6 +10,7 @@ Version-controlled Alembic migrations live in `backend/migrations/versions/`. SQ
 
 - `0001_foundation`: creates profiles, subjects, topics, constraints, timestamps, profile initialization, and RLS. It requires Supabase's Auth schema and roles.
 - `0002_seed_subjects`: inserts the seven subject definitions with stable UUIDs and deterministic order FAR, AFAR, MAS, TAX, RFBT, AT, AP. MAS is named Management Advisory Services. Seed conflicts by code are left intact. Applying `upgrade head` is the seed workflow; no topics are inserted.
+- `0003_video_tracking`: creates videos, user_video_progress, foreign keys, uniqueness/check constraints, timestamps, indexes, and RLS; does not import videos or progress automatically.
 
 Profiles use `auth.users.id` as their primary key and cascading foreign key. `display_name` and `target_exam_date` are nullable; timezone defaults to `Asia/Manila` and may hold another timezone. An after-insert Auth trigger, with a restricted SECURITY DEFINER function and empty search path, creates profiles. Existing Auth users are backfilled without duplicates. Profile creation does not trust browser metadata or require a client write.
 
@@ -89,6 +90,7 @@ Phase 4 imports 163 source topics without schema changes (FAR 43, AFAR 15, MAS 1
 - title
 - duration_seconds nullable
 - source_url nullable
+- source_code nullable (import source locator, not a fabricated lecture code)
 - display_order
 - created_at
 - updated_at
@@ -102,7 +104,16 @@ Phase 4 imports 163 source topics without schema changes (FAR 43, AFAR 15, MAS 1
 - started_at nullable
 - completed_at nullable
 - watched_seconds nullable
+- created_at
 - updated_at
+
+Implemented in Phase 5. `videos.topic_id` is mandatory and references a real topic; topic deletion is restricted while videos exist. Durations are nullable nonnegative integer seconds. The unique `(topic_id, source_code)` constraint protects deterministic imported identities; manual records may have a null locator. Source titles are nonempty; display ordering is nonnegative. Both tables use timestamp update triggers.
+
+Progress references `profiles.id` and `videos.id`, with unique `(user_id, video_id)`. Status is exactly `not_started`, `in_progress`, or `completed`; completed status requires a completion timestamp and other statuses require it to be null. Watched seconds, if present, must be nonnegative, but Phase 5 does not measure viewing or accept watched-second updates. Missing rows derive `not_started` without persistence. First start/completion sets started_at; completion sets completed_at, repeated completion preserves it; returning to in_progress clears completion, and reset clears started/completed/watched values. Reset on an untouched video creates no row. No workbook completion state is imported.
+
+RLS is enabled on both tables. Anonymous access is revoked. Authenticated users may read shared videos for active subjects and only their own progress via `auth.uid()`. Browser roles have no write grants/policies for either table. FastAPI owns progress mutation, including timestamps, and always scopes the join/update/upsert by the verified user UUID. Privileged database access can bypass RLS; repository ownership predicates remain mandatory. Curriculum reads return no other user's identity/progress.
+
+Phase 5 imports 1,562 videos: FAR 482, AFAR 185, MAS 155, TAX 200, RFBT 107, AT 108, AP 325. FAR Vids rows 586–587 remain excluded unresolved source conflicts. See IMPORTS.md for reviewed duration rules, mapping, and insert-only transactional commands.
 
 ## Planning
 

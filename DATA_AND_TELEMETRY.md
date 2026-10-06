@@ -49,6 +49,8 @@ Do not invent weightings during unrelated implementation. Until defined, expose 
 - completed duration
 - remaining duration
 
+Phase 5 uses independent lecture metrics only. Completed count is the current user's `completed` rows joined to available videos. Completed lecture time sums those videos' known `duration_seconds`; remaining lecture time is total known duration minus completed duration. Unknown durations are reported separately and excluded from time sums. `in_progress` contributes no partial watch time; `watched_seconds` is not measured or writable in this phase. These values are source lecture lengths, not actual study time or a composite subject progress percentage. No workbook checkboxes are transferred to user progress.
+
 ## Quiz metrics
 
 - attempts

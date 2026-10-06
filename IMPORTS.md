@@ -117,6 +117,38 @@ Report:
 - warnings
 - unresolved mappings
 
+## Implemented Phase 5: Project 1 lectures
+
+`backend/app/parsers/video_workbook.py` extends the existing curriculum parser, mapping constants, raw-duration extraction, and source traceability. `backend/app/services/video_import.py` reuses the curriculum state reader, validation, and fingerprint approach. The same local import requirements apply; no new API/runtime dependencies are needed. Apply Alembic revision `0003_video_tracking` before the database-aware video dry run.
+
+From `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m app.services.video_import
+# Review the dry-run report before explicit commit mode.
+.\.venv\Scripts\python.exe -m app.services.video_import --commit --approved-plan ../data/imports/reports/project-1-video-dry-run.plan.json --report ../data/imports/reports/project-1-video-migration.md
+.\.venv\Scripts\python.exe -m app.services.video_import --report ../data/imports/reports/project-1-video-second-dry-run.md
+# Focused duration, real-source mapping, idempotency/conflict, and API boundary checks:
+.\.venv\Scripts\python.exe -m unittest tests.test_video_import tests.test_videos
+```
+
+The workbook remains `data/imports/Project 1.xlsx`, private and ignored. `--workbook`/`--report` accept other paths, but the parser is deliberately specific to this reviewed workbook family. JSON manifests stay local. Safe Markdown reports omit credentials and personal progress/history.
+
+Lecture candidates come from literal A topic reference / B title / C duration on all seven `* Vids` sheets with verified headers. Uncoded section labels, Total Time rows, formatting blanks, and formula-only count summaries with blank title/duration are skipped and reported. Formula/error values in lecture fields block migration. MS normalizes to MAS. Relationships require exact existing topic codes; the sole approved alias is RFBT-11A to existing RFBT-11a at RFBT Vids rows 98–99. Current Phase 4 topics must match the curriculum source; no topic is created or retitled by this importer.
+
+The client confirmed displayed lecture units: `h:mm` cells represent MM:SS, and `[h]:mm:ss` cells with zero stored final seconds represent elapsed MM:SS (stored 57:27:00 means a 57m27s lecture). `h:mm:ss` represents real HH:MM:SS. Raw XML serials retain elapsed hours before openpyxl conversion; those components reconstruct the confirmed display units, rather than treating lecture values as Excel time-of-day durations. All accepted values become integer seconds, with 0.01 stored-second rounding tolerance. Explicit confirmed corrections require original cell/value matches: FAR C294 23.59 -> 23:59, FAR C295 24.46 -> 24:46, TAX C64 27:08: -> 27:08. Any other malformed/unconfirmed duration is reported and its video skipped until confirmed; negative, wrapped, and unexpected formats are rejected.
+
+Approved unresolved conflict: FAR Vids rows 586–587 both contain `42-04 Exercise 2` (FAR-42), with durations 48:23 and 48:22. Both remain excluded until client/source clarification. No merge, renamed title, or invented distinguishing identity is used to import them.
+
+Identity: topic UUID + `project-1:worksheet:row` locator stored as `source_code`; this is migration provenance, not an invented curriculum/lecture code. UUIDv5 uses `NAMESPACE_URL` and `study-hub/project-1/videos/v1/{topic UUID}/{locator}`. Display order is the original source row. Exact existing matches retain their IDs. Changed title/duration/topic/order/URL, duplicate source locators/titles, and relocated rows colliding with existing identities/titles block writes rather than overwrite. Row reorder/source edits require a fresh dry run and explicit conflict resolution.
+
+Default mode is read-only repeatable-read. Commit requires a matching successful source/mapping/database fingerprint, rechecked under subject/topic/video locks. Inserts and full post-write verification share one transaction; errors roll back. No updates, deletes, user progress writes, or subject/topic writes. A second dry run must propose zero inserts; this source yields 1,562 unchanged videos. Counts: FAR 482, AFAR 185, MAS 155, TAX 200, RFBT 107, AT 108, AP 325.
+
+Workbook completion checkboxes and other personal source states are not read into tracking. Progress starts derived/lazy for each authenticated user. Recall, schedule/calendar, and assessments remain report-only from Phase 4; no production tables for those domains are created.
+
+Reports: [video dry run](data/imports/reports/project-1-video-dry-run.md), [video migration](data/imports/reports/project-1-video-migration.md), [video second dry run](data/imports/reports/project-1-video-second-dry-run.md).
+
 ## PDF
 
 Initial support: text-based/selectable-text PDFs.

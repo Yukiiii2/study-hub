@@ -92,7 +92,9 @@ Completed under the user-directed phase order: inspected Project 1.xlsx, importe
 - assessment mapping
 - recall mapping report
 
-## Phase 5 — Video tracking (deferred)
+## Phase 5 — Video tracking
+
+Implemented: shared videos and owner-scoped progress with RLS, confirmed workbook duration parsing, transactional insert-only lecture migration, authenticated reads/status updates, and compact subject Videos pages with real summaries. Workbook completion states are excluded. FAR Vids rows 586–587 remain unresolved source conflicts requiring client/source clarification. Later phases remain deferred.
 
 - videos
 - user progress

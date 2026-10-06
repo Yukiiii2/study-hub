@@ -6,6 +6,14 @@ export class ApiError extends Error {
 }
 
 export async function authenticatedGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return authenticatedRequest<T>(path, "GET", undefined, signal);
+}
+
+export async function authenticatedPatch<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+  return authenticatedRequest<T>(path, "PATCH", body, signal);
+}
+
+async function authenticatedRequest<T>(path: string, method: "GET" | "PATCH", body?: unknown, signal?: AbortSignal): Promise<T> {
   if (!config.apiUrl) throw new ApiError("The study service is not configured.", 503);
   const { data, error } = await getSupabaseBrowserClient().auth.getSession();
   if (error || !data.session) throw new ApiError("Your session has expired. Please sign in again.", 401);
@@ -13,7 +21,9 @@ export async function authenticatedGet<T>(path: string, signal?: AbortSignal): P
   let response: Response;
   try {
     response = await fetch(`${config.apiUrl}${path}`, {
-      headers: { Authorization: `Bearer ${data.session.access_token}` },
+      method,
+      headers: { Authorization: `Bearer ${data.session.access_token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
       signal,
     });

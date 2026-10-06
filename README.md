@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 4 - Spreadsheet curriculum migration**, following the user-directed phase order. Sign-in and curriculum reads use the configured Supabase Auth and PostgreSQL project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 5 - Video / lecture tracking**, following the user-directed phase order. Sign-in, curriculum, and private video progress use the configured Supabase Auth and PostgreSQL project.
 
 ## Repository and architecture
 
@@ -94,7 +94,7 @@ GEMINI_API_KEY=
 CORS_ORIGINS=
 ```
 
-Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000` for local browser requests. Multiple explicit origins use a comma-separated list, for example `http://localhost:3000,http://127.0.0.1:3000`. An empty value allows no cross-origin browser access; wildcard origins are rejected. Current application endpoints use GET only.
+Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000` for local browser requests. Multiple explicit origins use a comma-separated list, for example `http://localhost:3000,http://127.0.0.1:3000`. An empty value allows no cross-origin browser access; wildcard origins are rejected. Current application endpoints use GET and PATCH.
 
 Health endpoint: GET http://localhost:8000/health returns HTTP 200:
 
@@ -119,7 +119,7 @@ From `backend/`, after setting `backend/.env`:
 .\.venv\Scripts\python.exe -m alembic current
 ```
 
-`upgrade head` applies the structural migration and the seed migration. It creates only `profiles`, `subjects`, and `topics` (plus Alembic's version table). The seed inserts FAR, AFAR, MAS, TAX, RFBT, AT, and AP with stable UUIDs and order 1-7. Re-running upgrades does not duplicate data. No separate seed command or sample topics are required. Migrations are hand-authored; create the next reviewed migration with `python -m alembic revision -m "description"`. Automatic ORM schema generation is not used. Destructive downgrades deliberately fail.
+`upgrade head` applies foundation, subject seed, and video tracking migrations. It creates `profiles`, `subjects`, `topics`, `videos`, and `user_video_progress` (plus Alembic's version table). The seed inserts FAR, AFAR, MAS, TAX, RFBT, AT, and AP with stable UUIDs and order 1-7. Re-running upgrades does not duplicate data. Curriculum/video imports run separately; no sample topics or progress are seeded. Migrations are hand-authored; create the next reviewed migration with `python -m alembic revision -m "description"`. Automatic ORM schema generation is not used. Destructive downgrades deliberately fail.
 
 Without credentials, inspect the migration chain and generated SQL:
 
@@ -169,17 +169,27 @@ npm.cmd run build
 
 The hierarchy fixtures are isolated test data; they never populate the application database. Live Phase 3 verification reads the seven seeded subjects and their actual topic records, including the valid zero-topic state. Browser automation is not part of these checks.
 
+## Video / lecture tracking (Phase 5)
+
+Open a subject and choose **Videos** at `/subjects/[subjectId]/videos`. Lectures use real imported titles, grouped by the existing cycle-safe topic order, with readable durations and compact controls for Not started, In progress, and Completed. Controls await backend persistence and refresh the real summaries; failures retain the prior displayed state and offer retry. Loading, missing-subject, no-video, and no-lectures-for-topic states are included. There is no video player.
+
+Summaries show completed/total videos and completed/remaining lecture duration for the signed-in user. Duration is not measured study time. Missing progress derives Not started; start/completion lazily stores user-owned progress. No workbook checkboxes are transferred. Backend queries explicitly scope progress by verified UUID; RLS restricts browser reads to the owner and denies browser writes.
+
+The video importer uses the existing local XLSX dependency and Phase 4 parsing/planning architecture. From `backend/`, apply `python -m alembic upgrade head`, run `python -m app.services.video_import`, review the report, then use explicit commit mode as documented in [IMPORTS.md](IMPORTS.md). The import accepted 1,562 videos and a second dry run reports zero inserts. FAR Vids rows 586–587 remain excluded duplicate-title/different-duration source conflicts. See [video dry run](data/imports/reports/project-1-video-dry-run.md), [migration verification](data/imports/reports/project-1-video-migration.md), and [second dry run](data/imports/reports/project-1-video-second-dry-run.md).
+
+Endpoints: GET `/api/topics/{topic_id}/videos`, GET `/api/subjects/{subject_id}/videos`, PATCH `/api/videos/{video_id}/progress`. See [API.md](API.md) and [DATABASE.md](DATABASE.md). Focused checks: `python -m unittest tests.test_video_import tests.test_videos` from `backend/`, and `npm.cmd run build` from `frontend/`. Import checks require the local ignored source workbook. No new dependencies are introduced.
+
 ## Current scope and deferrals
 
 Phase 4 adds a local, dry-run-first XLSX importer and populates 163 real topics in the existing schema. It does not change the Phase 3 frontend or API shape. Start with `backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-import.txt`, then run the CLI from `backend/` as documented in [IMPORTS.md](IMPORTS.md). The expected workbook is `data/imports/Project 1.xlsx` and remains uncommitted. Commit mode requires a reviewed dry-run manifest, validates the current source/database under locks, and inserts transactionally without updates or deletes. A second dry run must report zero inserts and 163 unchanged topics for this workbook.
 
-Safe reports: [initial dry run](data/imports/reports/project-1-dry-run.md), [migration result](data/imports/reports/project-1-migration.md), and [second dry run](data/imports/reports/project-1-second-dry-run.md). The two missing FAR titles, ambiguous hierarchy, video duration/case issues, and unresolved auxiliary mappings remain documented. Video, recall, calendar, and assessment records are report-only; no tables are created for them. Generated JSON plans stay local.
+Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.md), [migration result](data/imports/reports/project-1-migration.md), and [second dry run](data/imports/reports/project-1-second-dry-run.md). The two missing FAR topic titles and ambiguous hierarchy remain documented. Phase 5 resolves video duration/case mappings with explicit client-confirmed rules; recall, calendar, and assessments remain report-only with no production tables. Generated JSON plans stay local.
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
 The Phase 1 dark shell and Dashboard placeholder remain intact. Subjects navigation is functional; later navigation areas remain unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
 
-Intentionally deferred: subject/topic editing, further source imports, videos, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic source imports, video playback/viewing-time measurement, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Git and deployment
 

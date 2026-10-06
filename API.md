@@ -12,7 +12,7 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 ## Foundation
 
-Phase 3 implements `/health`, `/api/auth/me`, and the read-only subject/topic routes documented below. All other routes remain future contract directions.
+Phases 1–5 implement `/health`, `/api/auth/me`, subject/topic reads, video reads, and video progress updates documented below. Other routes remain future contract directions.
 
 ### GET /health
 
@@ -48,12 +48,23 @@ All subject/topic GET routes independently require a verified Supabase bearer to
 
 The frontend walks topic records iteratively in parent-before-child order. Missing parents appear as roots; malformed cycles are visited at most once per topic so every record remains visible. Visual indentation is capped on deep trees to preserve mobile readability, while accessible text retains the actual level. No sample topics are seeded.
 
-Do not invent a progress-write endpoint until the progress model is defined.
+Topic/composite study progress remains undefined; only the documented video statuses are writable.
 
 ## Videos
 
-- `GET /api/topics/{topic_id}/videos`
-- `PATCH /api/videos/{video_id}/progress`
+All routes require a verified Supabase bearer token. Missing/inactive subject, topic, or video returns 404. Invalid paths/payloads return 422; authentication failures return 401; provider/database failures return sanitized 503. CORS permits GET and PATCH from configured origins only.
+
+### GET /api/topics/{topic_id}/videos
+
+Returns an ordered JSON array; an existing topic with no videos returns `[]`. Fields: `id`, `topic_id`, nullable `topic_code`, `topic_title`, `title`, nullable `duration_seconds`, `display_order`, the current user's `status`, nullable `watched_seconds`, and nullable `completed_at`. Missing progress logically returns `not_started` with null watched/completion values. No progress records are created by reads. Source import locators and user identities are not exposed.
+
+### GET /api/subjects/{subject_id}/videos
+
+Returns `{ "videos": [...], "summary": {...} }` for an active subject. Video fields match the topic endpoint. Ordering is topic display_order/id, then video display_order/id. Summary fields: `total_videos`, `completed_videos`, `total_duration_seconds`, `completed_duration_seconds`, `remaining_duration_seconds`, `unknown_duration_videos`. Known durations are summed; only completed video durations contribute to completed time. Remaining = known total minus completed. Unknown durations are counted and excluded from time totals. Existing subjects with no videos return an empty array and zero summary.
+
+### PATCH /api/videos/{video_id}/progress
+
+Request: `{ "status": "not_started" | "in_progress" | "completed" }`. Extra fields, including `user_id` and `watched_seconds`, are rejected. Returns the updated video with the same fields as GET. Ownership comes exclusively from the verified token. Progress is lazily inserted on start/completion; resetting an untouched video remains derived. Repeated completion preserves completed_at; moving to in_progress clears it; reset clears all timing/viewing values. No video player or viewing-time measurement is implemented. Frontend controls await successful persistence and refresh the subject response; failures do not show optimistic completion.
 
 ## Study events
 
