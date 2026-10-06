@@ -103,6 +103,8 @@ Implemented: shared videos and owner-scoped progress with RLS, confirmed workboo
 
 ## Phase 6 — Calendar and study planner
 
+Implemented: owner-scoped events/tasks/sessions plus minimal recurring occurrence snapshots, authenticated CRUD and atomic task scheduling, Month/Week calendar with Today/Tasks and mobile agenda, reusable event editor, weekly selected-day plans with optional end date, and reload-safe start/stop sessions. RLS and API ownership are enforced; planned and actual time stay separate. SCHEDULE/Calendar inspection remains report-only with zero writes because exact times/ownership and several source relationships are unresolved. Drag/drop, separate Day grid, advanced timer and later phases remain deferred.
+
 - study_events
 - study_tasks
 - study_sessions

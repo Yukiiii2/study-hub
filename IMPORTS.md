@@ -145,9 +145,19 @@ Identity: topic UUID + `project-1:worksheet:row` locator stored as `source_code`
 
 Default mode is read-only repeatable-read. Commit requires a matching successful source/mapping/database fingerprint, rechecked under subject/topic/video locks. Inserts and full post-write verification share one transaction; errors roll back. No updates, deletes, user progress writes, or subject/topic writes. A second dry run must propose zero inserts; this source yields 1,562 unchanged videos. Counts: FAR 482, AFAR 185, MAS 155, TAX 200, RFBT 107, AT 108, AP 325.
 
-Workbook completion checkboxes and other personal source states are not read into tracking. Progress starts derived/lazy for each authenticated user. Recall, schedule/calendar, and assessments remain report-only from Phase 4; no production tables for those domains are created.
+Workbook completion checkboxes and other personal source states are not read into tracking. Progress starts derived/lazy for each authenticated user. Recall, schedule/calendar, and assessments remain source-report-only. Phase 6 creates user-owned planner tables separately without transferring the workbook schedule.
 
 Reports: [video dry run](data/imports/reports/project-1-video-dry-run.md), [video migration](data/imports/reports/project-1-video-migration.md), [video second dry run](data/imports/reports/project-1-video-second-dry-run.md).
+
+## Phase 6: schedule / calendar dry run
+
+The read-only CLI `python -m app.services.schedule_inspect` from `backend/` uses the existing optional import requirements and defaults to `data/imports/Project 1.xlsx`. Optional `--workbook` and `--report` paths are supported. It has no database access or commit mode. The [safe report](data/imports/reports/project-1-schedule-dry-run.md) records the source hash, layout, counts and source-code/reference conflicts, omitting literal personal calendar contents/dates, remarks and completion state.
+
+SCHEDULE has 19 complete literal seven-day header blocks (133 dates); topic-reference rows may extend beyond three rows, so all direct curriculum references are inspected structurally. 152 of 153 resolve to accepted source topic rows. Thirteen cross the weekday-column subject; one direct reference is unresolved, and three indirect references need separate tracing. MS maps to MAS; the AT/AUD column is not a unique subject, while explicit AT/AP references remain distinguishable.
+
+Calendar has nine month headers and 273 validated day cells. The reproducible inspector counts nonblank literal text cells below date headers (including notes), rather than normalized events. Month/date/weekday alignment is checked without executing formulas. Neither sheet provides exact study start/end times. Helper countdowns, assessment labels, breaks/reminders and workbook completion are not converted into timed records or personal progress.
+
+Decision: zero event/task/session inserts or updates; both sheets remain report-only. Preserve the weekday pattern in the report and let the authenticated user configure actual times through Study Plan. Future source conversion requires confirmed ownership, activity meaning and ambiguous relationships; no fake midnight events or automatic task assignments.
 
 ## PDF
 

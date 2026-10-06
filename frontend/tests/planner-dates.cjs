@@ -1,0 +1,20 @@
+// Focused recurrence/UI boundary checks; never populate application data.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const ts = require("typescript");
+const source = fs.readFileSync(path.join(__dirname, "../src/features/study-plan/dates.ts"), "utf8");
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText;
+const output = { exports: {} };
+vm.runInNewContext(compiled, { module: output, exports: output.exports, Intl, Date, Set, Error });
+const dates = output.exports;
+assert.equal(dates.localToInstant("2026-10-06", "09:00", "Asia/Taipei"), "2026-10-06T01:00:00.000Z");
+assert.equal(dates.localToInstant("2026-10-06", "09:00", "Asia/Kathmandu"), "2026-10-06T03:15:00.000Z");
+assert.throws(() => dates.localToInstant("2026-03-08", "02:30", "America/New_York"), /does not exist/);
+assert.throws(() => dates.localToInstant("2026-11-01", "01:30", "America/New_York"), /occurs twice/);
+assert.throws(() => dates.localToInstant("2026-02-30", "09:00", "UTC"), /valid date/);
+assert.equal(dates.dateAdd("2026-12-31", 1), "2027-01-01");
+assert.equal(dates.calendarDays("2026-10-06", "month").length, 42);
+assert.equal(dates.calendarDays("2026-10-06", "week")[0], "2026-10-05");
+console.log("PASS: 8 planner timezone/date boundary checks");

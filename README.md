@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 5 - Video / lecture tracking**, following the user-directed phase order. Sign-in, curriculum, and private video progress use the configured Supabase Auth and PostgreSQL project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 6 - Calendar and study planner**, following the user-directed phase order. Sign-in, curriculum, private video progress, and owner-scoped plans/sessions use the configured Supabase Auth and PostgreSQL project.
 
 ## Repository and architecture
 
@@ -44,10 +44,10 @@ From the repository root:
 cd frontend
 Copy-Item .env.example .env.local
 npm.cmd ci
-npm.cmd run dev
+npm.cmd run dev -- --port 3001
 ```
 
-Open http://localhost:3000. For a production compile, use `npm.cmd run build`, then `npm.cmd start` to serve it locally.
+Open http://localhost:3001. For a production compile, use `npm.cmd run build`, then `npm.cmd start` to serve it locally.
 
 `frontend/.env.local` is the frontend environment file:
 
@@ -57,7 +57,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Set `NEXT_PUBLIC_API_URL=http://localhost:8000` and configure the Supabase project URL and current publishable key (`sb_publishable_...`) in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Legacy anon keys are not used. Only public values belong in this file; never put secret, database, or AI keys in frontend code or variables. Restart the dev server after changing environment values.
+Set `NEXT_PUBLIC_API_URL=http://localhost:8001` and configure the Supabase project URL and current publishable key (`sb_publishable_...`) in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Legacy anon keys are not used. Only public values belong in this file; never put secret, database, or AI keys in frontend code or variables. Restart the dev server after changing environment values. Port 8000 belongs to another local project and must remain untouched.
 
 ## Backend development
 
@@ -68,7 +68,7 @@ cd backend
 python -m venv .venv
 Copy-Item .env.example .env
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 Using the virtual environment's Python directly avoids requiring activation or a PowerShell policy change. Optional activation: `.\.venv\Scripts\Activate.ps1`.
@@ -81,7 +81,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 cp .env.example .env
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 `backend/.env` is loaded by centralized settings. Operating-system environment variables take precedence. Its example contains:
@@ -94,15 +94,15 @@ GEMINI_API_KEY=
 CORS_ORIGINS=
 ```
 
-Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000` for local browser requests. Multiple explicit origins use a comma-separated list, for example `http://localhost:3000,http://127.0.0.1:3000`. An empty value allows no cross-origin browser access; wildcard origins are rejected. Current application endpoints use GET and PATCH.
+Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000,http://localhost:3001` for both local frontend ports. Settings read `backend/.env` by absolute path; process environment overrides the file. The value is split on commas, whitespace is trimmed, and blank entries are discarded. An empty value allows no cross-origin browser access; wildcards are rejected. Production must list only its actual trusted frontend origins. CORS permits GET, POST, PATCH and DELETE; middleware handles OPTIONS preflight with explicit origin/header checks. Changing a cached backend setting requires a server restart.
 
-Health endpoint: GET http://localhost:8000/health returns HTTP 200:
+Health endpoint: GET http://localhost:8001/health returns HTTP 200:
 
 ```json
 {"status":"ok"}
 ```
 
-Interactive API documentation is available at http://localhost:8000/docs. Health confirms the application is running, not database connectivity.
+Interactive API documentation is available at http://localhost:8001/docs. Health confirms the application is running, not database connectivity. If CORS fails locally, check `/openapi.json` identifies **Study Hub API**, rather than another project's server on a different port.
 
 The root `.env.example` only points to application-specific files; no root environment file is needed. All real environment files, virtual environments, dependencies, and build outputs are Git-ignored. Example files are tracked.
 
@@ -119,7 +119,7 @@ From `backend/`, after setting `backend/.env`:
 .\.venv\Scripts\python.exe -m alembic current
 ```
 
-`upgrade head` applies foundation, subject seed, and video tracking migrations. It creates `profiles`, `subjects`, `topics`, `videos`, and `user_video_progress` (plus Alembic's version table). The seed inserts FAR, AFAR, MAS, TAX, RFBT, AT, and AP with stable UUIDs and order 1-7. Re-running upgrades does not duplicate data. Curriculum/video imports run separately; no sample topics or progress are seeded. Migrations are hand-authored; create the next reviewed migration with `python -m alembic revision -m "description"`. Automatic ORM schema generation is not used. Destructive downgrades deliberately fail.
+`upgrade head` applies foundation, subject seed, video tracking and planner migrations (through `0004_study_planner`). It creates `profiles`, `subjects`, `topics`, `videos`, `user_video_progress`, `study_events`, `study_event_occurrences`, `study_tasks`, and `study_sessions` (plus Alembic's version table). The seed inserts FAR, AFAR, MAS, TAX, RFBT, AT, and AP with stable UUIDs and order 1-7. Re-running upgrades does not duplicate data. Curriculum/video imports run separately; no sample plans or progress are seeded. Migrations are hand-authored; create the next reviewed migration with `python -m alembic revision -m "description"`. Automatic ORM schema generation is not used. Destructive downgrades deliberately fail.
 
 Without credentials, inspect the migration chain and generated SQL:
 
@@ -179,17 +179,29 @@ The video importer uses the existing local XLSX dependency and Phase 4 parsing/p
 
 Endpoints: GET `/api/topics/{topic_id}/videos`, GET `/api/subjects/{subject_id}/videos`, PATCH `/api/videos/{video_id}/progress`. See [API.md](API.md) and [DATABASE.md](DATABASE.md). Focused checks: `python -m unittest tests.test_video_import tests.test_videos` from `backend/`, and `npm.cmd run build` from `frontend/`. Import checks require the local ignored source workbook. No new dependencies are introduced.
 
+## Calendar and study planner (Phase 6)
+
+Open **Study Plan** at `/study-plan`. Month and Week calendars let you select a date/time to add an event, or select an event to edit, reschedule, complete or delete it. Today lists current events; mobile uses a readable agenda. The native editor filters topics by subject and displays the configured profile timezone. Rescheduling uses the editor; drag-and-drop and a separate Day grid are deferred.
+
+Weekly plans support selected weekdays and an optional inclusive end date. Choose **Only this occurrence** or **Entire recurring series** when editing. Untouched occurrences are expanded on reads; individual edits/completion/deletion/session starts store snapshots. Series edits retain those snapshots. Changing timezone or converting to a one-off is rejected once snapshots exist; create a new series instead. Invalid or ambiguous DST times require another time rather than a guess.
+
+Tasks support create/edit/complete/cancel/reopen/delete and an atomic **Schedule** action. Deleting a linked event returns scheduled tasks to pending. Reopening a linked task unlinks it while keeping its calendar event. Start a study session from an event or the planner, then stop it to save actual time. One active session is allowed per account and survives reload. Completing a plan does not create actual time; deleting a plan preserves session history.
+
+Workbook SCHEDULE and Calendar remain report-only: no exact study start/end times or reliable ownership are supplied. Run `.\.venv\Scripts\python.exe -m app.services.schedule_inspect` from `backend/` with the existing import requirements. See the [safe schedule dry run](data/imports/reports/project-1-schedule-dry-run.md). No personal schedule/progress is imported.
+
+Focused validation: `python -m unittest tests.test_planner` from `backend/`; `node tests/planner-dates.cjs` and `npm.cmd run build` from `frontend/`. Explicit live verification from the root: `.\backend\.venv\Scripts\python.exe scripts/verify_study_planner.py --run`. It requires the real ignored application environments, creates two temporary confirmed Auth users, verifies ownership/CRUD/recurrence/tasks/sessions/RLS and removes only those accounts. It prints no credentials. Do not run it against an unintended project. Optional `node scripts/verify_frontend_planner.cjs` checks the actual frontend SDK/services and cleans up its own task; it requires existing `PHASE2_VERIFY_EMAIL`/`PHASE2_VERIFY_PASSWORD` in the ignored backend environment and never prints them.
+
 ## Current scope and deferrals
 
 Phase 4 adds a local, dry-run-first XLSX importer and populates 163 real topics in the existing schema. It does not change the Phase 3 frontend or API shape. Start with `backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-import.txt`, then run the CLI from `backend/` as documented in [IMPORTS.md](IMPORTS.md). The expected workbook is `data/imports/Project 1.xlsx` and remains uncommitted. Commit mode requires a reviewed dry-run manifest, validates the current source/database under locks, and inserts transactionally without updates or deletes. A second dry run must report zero inserts and 163 unchanged topics for this workbook.
 
-Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.md), [migration result](data/imports/reports/project-1-migration.md), and [second dry run](data/imports/reports/project-1-second-dry-run.md). The two missing FAR topic titles and ambiguous hierarchy remain documented. Phase 5 resolves video duration/case mappings with explicit client-confirmed rules; recall, calendar, and assessments remain report-only with no production tables. Generated JSON plans stay local.
+Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.md), [migration result](data/imports/reports/project-1-migration.md), and [second dry run](data/imports/reports/project-1-second-dry-run.md). The two missing FAR topic titles and ambiguous hierarchy remain documented. Phase 5 resolves video duration/case mappings with explicit client-confirmed rules. Workbook recall, schedule/calendar and assessments remain report-only; Phase 6 provides user-created planner tables without a source schedule import. Generated JSON plans stay local.
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
 The Phase 1 dark shell and Dashboard placeholder remain intact. Subjects navigation is functional; later navigation areas remain unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic source imports, video playback/viewing-time measurement, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic source imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Git and deployment
 

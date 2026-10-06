@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. All later domains below remain planned.
+Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. Phase 6 adds owner-scoped planning and actual sessions. Later domains below remain planned.
 
 ## Implemented Phase 2 foundation
 
@@ -119,6 +119,8 @@ Phase 5 imports 1,562 videos: FAR 482, AFAR 185, MAS 155, TAX 200, RFBT 107, AT 
 
 ### study_events
 
+Implemented by migration `0004_study_planner`. Stores one-off events or weekly series; `timezone` is an IANA identifier snapshot in addition to the fields below. Start/end are `timestamptz`, with start strictly before end. Topic requires its matching subject through the existing composite curriculum key. Status is `scheduled`, `completed`, `skipped`, or `cancelled`; a recurring template remains scheduled and status is changed on its individual occurrence. Resource/assessment linkage is deferred, so those speculative fields below are not created.
+
 - id
 - user_id
 - subject_id nullable
@@ -145,7 +147,17 @@ Candidate event types:
 - assessment
 - general
 
+### study_event_occurrences
+
+Minimal recurrence snapshot storage, not a second event domain. Fields: `id`, `user_id`, `study_event_id`, `occurrence_date`, subject/topic, title/type, start/end, status, notes, `is_deleted`, created/updated timestamps. Unique `(study_event_id, occurrence_date)` preserves the original local-date identity even when rescheduled; owner composite FKs and subject/topic checks apply. A tombstone suppresses one occurrence. Untouched dates remain virtual, with no read-time writes.
+
+Weekly rules use the documented subset `FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=YYYYMMDD`. UNTIL is an optional inclusive date in the series timezone; this is not a full RFC5545 engine. Anchor weekday must be selected. Query ranges are aware, positive, at most 93 days and 2,000 overlapping rows; excessive results are rejected. Recurrence preserves local wall-clock start/end. Invalid/ambiguous DST times or unrepresentable date arithmetic return validation errors, without guessing. Occurrences outside the requested interval cannot introduce unrelated DST errors.
+
+Editing a series affects untouched occurrences, retaining snapshots (including dates removed from its weekday rule). Once snapshots exist, changing timezone or removing recurrence returns 409; start another series instead. Individual deletion leaves a tombstone. Series deletion removes its schedule/snapshots and detaches their session references, preserving recorded actual history.
+
 ### study_tasks
+
+Implemented with the fields below plus nullable `scheduled_event_id`, owned by the same user. Status is pending/scheduled/completed/cancelled; estimates, when supplied, are positive integer minutes. Topic/subject must match. Scheduling locks the pending task and creates its event plus link/status in one transaction; duplicate/concurrent scheduling is rejected. Deleting a linked event clears the link and returns scheduled tasks to pending via a trigger. Explicitly reopening a task clears its link but preserves the calendar event; completing/cancelling a task does not silently change an event.
 
 For unscheduled/plannable work:
 
@@ -163,6 +175,8 @@ For unscheduled/plannable work:
 
 ### study_sessions
 
+Implemented with the fields below plus nullable `occurrence_id`. One unfinished session per user is enforced by a partial unique index. Active `ended_at`/`duration_seconds` are both null; stopped values are both present, nonnegative, and must equal the floored difference between actual timestamps. Server timestamps are authoritative; the client cannot set duration or ownership. A recurring session pins an occurrence snapshot. Composite owner and occurrence/event FKs prevent cross-user or mismatched references. Deleted schedule references become null while actual history and curriculum context remain.
+
 Actual study activity:
 
 - id
@@ -177,6 +191,8 @@ Actual study activity:
 - created_at
 
 Planned duration belongs to events/tasks. Actual duration belongs to sessions.
+
+All four planner tables enable RLS, revoke anonymous/public privileges, and grant authenticated owner-scoped SELECT only. Browser mutations are deliberately denied, matching video tracking: FastAPI handles status, relationship and timestamp semantics, always filtering by the verified UUID even with privileged database credentials. Event/task/occurrence updates reuse the existing updated-at trigger. No source plans or sample activity are seeded.
 
 ## Resources
 

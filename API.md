@@ -12,7 +12,7 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 ## Foundation
 
-Phases 1–5 implement `/health`, `/api/auth/me`, subject/topic reads, video reads, and video progress updates documented below. Other routes remain future contract directions.
+Phases 1–6 implement `/health`, `/api/auth/me`, subject/topic reads, video reads/progress and owner-scoped planner APIs documented below. Other routes remain future contract directions.
 
 ### GET /health
 
@@ -52,7 +52,7 @@ Topic/composite study progress remains undefined; only the documented video stat
 
 ## Videos
 
-All routes require a verified Supabase bearer token. Missing/inactive subject, topic, or video returns 404. Invalid paths/payloads return 422; authentication failures return 401; provider/database failures return sanitized 503. CORS permits GET and PATCH from configured origins only.
+All routes require a verified Supabase bearer token. Missing/inactive subject, topic, or video returns 404. Invalid paths/payloads return 422; authentication failures return 401; provider/database failures return sanitized 503. CORS permits GET, POST, PATCH and DELETE from explicit configured origins only; middleware handles preflight OPTIONS.
 
 ### GET /api/topics/{topic_id}/videos
 
@@ -66,34 +66,43 @@ Returns `{ "videos": [...], "summary": {...} }` for an active subject. Video fie
 
 Request: `{ "status": "not_started" | "in_progress" | "completed" }`. Extra fields, including `user_id` and `watched_seconds`, are rejected. Returns the updated video with the same fields as GET. Ownership comes exclusively from the verified token. Progress is lazily inserted on start/completion; resetting an untouched video remains derived. Repeated completion preserves completed_at; moving to in_progress clears it; reset clears all timing/viewing values. No video player or viewing-time measurement is implemented. Frontend controls await successful persistence and refresh the subject response; failures do not show optimistic completion.
 
-## Study events
+## Study planner (implemented Phase 6)
 
-- `GET /api/study-events`
-- `POST /api/study-events`
-- `GET /api/study-events/{event_id}`
-- `PATCH /api/study-events/{event_id}`
-- `DELETE /api/study-events/{event_id}`
+Every route independently verifies the bearer token. Ownership is derived from that identity; request bodies forbid extra fields, including `user_id`. Missing/other-user records return 404, invalid input/relationships/rules return 422, scheduling/active-session/series-shape conflicts return 409, and provider/database errors return sanitized 503. Create returns 201, successful patch/read 200, delete 204. Titles must be nonblank and at most 200 characters; notes at most 10,000. All timestamps supplied by clients must include an offset. Nullable fields can be explicitly cleared; required fields cannot be patched to null. Patches merge with the stored record before relationship/time validation.
 
-Candidate create payload:
+| Method | Route | Behavior |
+| --- | --- | --- |
+| GET | `/api/study-plan/context` | `{timezone, active_session}` from the profile and own unfinished session |
+| GET | `/api/study-events?start_at=...&end_at=...` | Overlapping one-offs/recurring occurrences, aware positive range up to 93 days; more than 2,000 results is rejected |
+| POST | `/api/study-events` | Create one-off or weekly series |
+| GET/PATCH/DELETE | `/api/study-events/{id}` | Read/edit/delete one event or explicitly selected series |
+| PATCH/DELETE | `/api/study-events/{id}/occurrences/{YYYY-MM-DD}` | Independently edit/reschedule/status/delete one recurring occurrence |
+| GET/POST | `/api/study-tasks` | List own tasks/newest first or create unscheduled work |
+| PATCH/DELETE | `/api/study-tasks/{id}` | Edit/status/delete own task |
+| POST | `/api/study-tasks/{id}/schedule` | Atomically create an event and schedule its pending task |
+| GET | `/api/study-sessions` | Own sessions newest first, at most 100; optional aware start/end overlap filters |
+| POST | `/api/study-sessions` | Start actual session using server time, optionally from an own event/occurrence |
+| PATCH | `/api/study-sessions/{id}` | Stop actual session or edit its notes |
 
-```json
-{
-  "title": "Revenue Recognition",
-  "subject_id": "uuid",
-  "topic_id": "uuid",
-  "event_type": "lecture",
-  "start_at": "2026-10-10T19:00:00+08:00",
-  "end_at": "2026-10-10T21:00:00+08:00",
-  "recurrence_rule": null,
-  "notes": null
-}
-```
+### Events and occurrences
 
-## Study sessions
+Create fields: required `title`, `start_at`, `end_at`; optional nullable `subject_id`, `topic_id`, `recurrence_rule`, `notes`; `event_type` defaults general, `status` scheduled, `timezone` defaults to the configured profile timezone. Topic requires a valid active subject and must belong to it; start must precede end. Types: lecture/reading/drill/recall/quiz/assessment/general. Statuses: scheduled/completed/skipped/cancelled.
 
-- `POST /api/study-sessions`
-- `PATCH /api/study-sessions/{session_id}`
-- `GET /api/study-sessions`
+Event responses include `id`, subject/topic, title/type, start/end, timezone, status, recurrence_rule, notes, created/updated timestamps. List/occurrence-patch responses add `is_recurring`, nullable `occurrence_date` and `occurrence_id`. Recurring list `id` remains the series UUID; occurrence_date is its original local-date key even when moved. One-offs have null occurrence identity. No ownership UUID or secret is returned.
+
+Rules use the documented weekly subset `FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261231`. Selected days must be unique and include the anchor weekday. UNTIL is optional, inclusive in the series timezone, and cannot precede the anchor. Unsupported rules are rejected. Local wall-clock times are preserved. Invalid/ambiguous DST times require correction rather than a guessed offset.
+
+Occurrence patches accept event-edit fields except timezone/recurrence_rule; they persist a snapshot. DELETE suppresses only that original date. Series patches retain snapshots and affect untouched occurrences; once snapshots exist, removing recurrence or changing timezone returns 409. Recurring template status stays scheduled; completion applies to occurrences. Series deletion preserves actual sessions and clears deleted references.
+
+### Tasks
+
+Fields: `id`, nullable subject/topic, title, task_type, nullable positive integer estimated_minutes, nullable aware due_at, status, nullable scheduled_event_id, created/updated timestamps. task_type uses the event types. Create/patch may set pending/completed/cancelled; scheduled is only set by the schedule endpoint. Schedule takes an EventCreate body retaining the task's subject/topic and scheduled status. It rejects duplicate scheduling and rolls back on failure. Deleting the linked event unlinks the task and returns scheduled status to pending. Explicitly patching pending unlinks a task while preserving its event; completing/cancelling a task does not complete/cancel the event.
+
+### Sessions
+
+Start body: nullable study_event_id, occurrence_date, subject_id, topic_id, notes. Event-linked sessions inherit curriculum context; supplied contradictory associations are rejected. A recurring event requires occurrence_date and stores an occurrence snapshot; a one-off forbids occurrence_date. No event permits independent actual activity. One active session per account is enforced; a second start returns 409.
+
+Response fields: id, nullable study_event_id/occurrence_id/subject_id/topic_id, started_at, nullable ended_at/duration_seconds, notes, created_at. PATCH `{ "action": "stop" }` optionally accepts notes; notes-only patches are also accepted. Stop derives elapsed integer seconds from one server timestamp; repeated stops preserve the original end/duration. Clients cannot write timestamps/duration. Planned times are never overwritten.
 
 ## Resources
 

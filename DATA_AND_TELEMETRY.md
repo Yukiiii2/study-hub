@@ -21,6 +21,10 @@ Actual study time derives from `study_sessions`.
 
 Do not overwrite planned time with actual time.
 
+Phase 6 stores planned aware start/end timestamps in `study_events` and independent actual timestamps in `study_sessions`. Recurring occurrences use their expanded/snapshot schedule times, not one template duration multiplied by an invented count. Task estimates are planning inputs; a scheduled task and its linked event must not be counted twice by any later aggregation.
+
+Active sessions have null end/duration. On stop, FastAPI captures one server timestamp and stores the floored elapsed seconds; repeated stop preserves it. Only one active session is allowed per user, and it survives browser reload. Calendar completion does not generate a session; stopping a session does not alter the event. Deleting events/series preserves actual session timestamps, duration, notes and subject/topic, while clearing deleted references. No planned/actual dashboard, composite progress or external telemetry is implemented.
+
 Useful metrics:
 
 - planned minutes
