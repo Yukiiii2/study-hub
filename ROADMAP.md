@@ -81,14 +81,9 @@ Implemented: authenticated active-subject list/detail, flat topic APIs, protecte
 - frontend subject pages
 - only defined progress metrics
 
-## Phase 4 — Video tracking
+## Phase 4 — Spreadsheet migration and real curriculum import
 
-- videos
-- user progress
-- video UI
-- duration/progress summaries
-
-## Phase 5 — Spreadsheet migration
+Completed under the user-directed phase order: inspected Project 1.xlsx, imported 163 real curriculum topics through a validated dry run and insert-only transaction, and verified a zero-insert second dry run. No schema or frontend changes. Video, recall, schedule/calendar, and assessment mappings remain reports only; incomplete FAR-19/FAR-36 rows are excluded.
 
 - workbook mapping
 - dry-run importer
@@ -96,6 +91,13 @@ Implemented: authenticated active-subject list/detail, flat topic APIs, protecte
 - schedule mapping
 - assessment mapping
 - recall mapping report
+
+## Phase 5 — Video tracking (deferred)
+
+- videos
+- user progress
+- video UI
+- duration/progress summaries
 
 ## Phase 6 — Calendar and study planner
 

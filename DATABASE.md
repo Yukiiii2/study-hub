@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Relational domains for CPA Study Hub. Phase 2 implements only profiles, subjects, and the empty topics structure. All remaining domains below are planned and have no tables yet.
+Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics from the reviewed workbook. All remaining domains below are planned and have no tables yet.
 
 ## Implemented Phase 2 foundation
 
@@ -19,7 +19,7 @@ Subjects have unique, nonempty codes; names and topic titles cannot be blank. To
 
 RLS is enabled on all three tables. Anonymous users have no table access. Authenticated users may select their own profile and update only `display_name`, `timezone`, and `target_exam_date` on that profile; RLS checks the verified `auth.uid()` on both old and new rows. They cannot insert/delete profiles or change identity/timestamps. Authenticated users may read subjects and topics but have no insert/update/delete grants or write policies. These are shared curriculum definitions, not user-owned progress.
 
-The browser SDK is used only for Auth/session management. All current application data requests go through FastAPI. Backend PostgreSQL connections use privileged server-side credentials, which may bypass RLS; RLS is defense for Supabase's data API and does not replace backend ownership checks. The current repository reads only shared subjects after token validation. Future repositories handling user-owned data must scope queries to the verified user UUID. Never accept a browser-supplied `user_id` as authorization.
+The browser SDK is used only for Auth/session management. All current application data requests go through FastAPI. Backend PostgreSQL connections use privileged server-side credentials, which may bypass RLS; RLS is defense for Supabase's data API and does not replace backend ownership checks. The current repositories read shared subjects/topics after token validation. Future repositories handling user-owned data must scope queries to the verified user UUID. Never accept a browser-supplied `user_id` as authorization.
 
 ## Principles
 
@@ -79,6 +79,8 @@ Seed:
 - updated_at
 
 Do not store user-specific completion directly on shared topic definitions.
+
+Phase 4 imports 163 source topics without schema changes (FAR 43, AFAR 15, MAS 18, TAX 27, RFBT 23, AT 17, AP 20). Parent and description values are null because the approved mapping does not infer them. Source row numbers define display order. FAR-19 and FAR-36 remain excluded for missing titles. The insert-only CLI enforces subject/code identity and rejects conflicts under table locks; no database-wide code uniqueness constraint is added speculatively. Existing constraints/RLS and Auth are preserved. See IMPORTS.md for transactional dry-run/commit commands and idempotency rules.
 
 ### videos
 

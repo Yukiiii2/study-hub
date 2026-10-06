@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 3 - Subjects and topics**. Sign-in and curriculum reads use the configured Supabase Auth and PostgreSQL project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 4 - Spreadsheet curriculum migration**, following the user-directed phase order. Sign-in and curriculum reads use the configured Supabase Auth and PostgreSQL project.
 
 ## Repository and architecture
 
@@ -171,9 +171,15 @@ The hierarchy fixtures are isolated test data; they never populate the applicati
 
 ## Current scope and deferrals
 
+Phase 4 adds a local, dry-run-first XLSX importer and populates 163 real topics in the existing schema. It does not change the Phase 3 frontend or API shape. Start with `backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-import.txt`, then run the CLI from `backend/` as documented in [IMPORTS.md](IMPORTS.md). The expected workbook is `data/imports/Project 1.xlsx` and remains uncommitted. Commit mode requires a reviewed dry-run manifest, validates the current source/database under locks, and inserts transactionally without updates or deletes. A second dry run must report zero inserts and 163 unchanged topics for this workbook.
+
+Safe reports: [initial dry run](data/imports/reports/project-1-dry-run.md), [migration result](data/imports/reports/project-1-migration.md), and [second dry run](data/imports/reports/project-1-second-dry-run.md). The two missing FAR titles, ambiguous hierarchy, video duration/case issues, and unresolved auxiliary mappings remain documented. Video, recall, calendar, and assessment records are report-only; no tables are created for them. Generated JSON plans stay local.
+
+Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
+
 The Phase 1 dark shell and Dashboard placeholder remain intact. Subjects navigation is functional; later navigation areas remain unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
 
-Intentionally deferred: subject/topic editing, topic import, videos, spreadsheet migration, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, further source imports, videos, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Git and deployment
 

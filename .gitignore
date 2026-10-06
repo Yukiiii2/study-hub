@@ -22,3 +22,8 @@ Desktop.ini
 .idea/
 .vscode/
 *.log
+# Personal source workbooks and raw auxiliary migration plans stay local.
+data/imports/**/*.xlsx
+data/imports/**/*-private.json
+# Generated approval manifests and detailed auxiliary plans are local artifacts.
+data/imports/reports/*.json
