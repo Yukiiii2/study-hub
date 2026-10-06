@@ -1,39 +1,50 @@
 "use client";
 
-import type { Session } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { authenticatedGet } from "@/services/api";
 import { getSupabaseBrowserClient } from "./supabase";
+import { initialAuthState, SessionVerifier, type AuthState, type VerifiedUser } from "./session-verification";
 
-type AuthState = { session: Session | null; loading: boolean; error: string | null };
-const AuthContext = createContext<AuthState | null>(null);
+const AuthContext = createContext<(AuthState & { retry: () => void }) | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ session: null, loading: true, error: null });
+  const [state, setState] = useState<AuthState>(initialAuthState);
+  const verifierRef = useRef<SessionVerifier | null>(null);
 
   useEffect(() => {
     let active = true;
     let unsubscribe: (() => void) | undefined;
+    const verifier = new SessionVerifier((_session, signal) => authenticatedGet<VerifiedUser>("/api/auth/me", signal), setState);
+    verifierRef.current = verifier;
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (active) setState({ session, loading: false, error: null });
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (active) verifier.accept(session, event === "USER_UPDATED");
       });
       unsubscribe = () => data.subscription.unsubscribe();
       // The listener receives INITIAL_SESSION; this also catches storage/init failures.
       void supabase.auth.getSession().then(({ error }) => {
         if (active && error) {
-          setState({ session: null, loading: false, error: "Your session could not be restored. Please sign in again." });
+          verifier.fail("Your session could not be restored. Try again.");
         }
       }).catch(() => {
-        if (active) setState({ session: null, loading: false, error: "Sign-in service is unavailable. Try again." });
+        if (active) verifier.fail("Sign-in service is unavailable. Try again.");
       });
     } catch {
-      setState({ session: null, loading: false, error: "Sign-in is not configured. Set the public Supabase environment values." });
+      verifier.fail("Sign-in is not configured. Set the public Supabase environment values.");
     }
-    return () => { active = false; unsubscribe?.(); };
+    return () => { active = false; unsubscribe?.(); verifier.dispose(); verifierRef.current = null; };
   }, []);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  async function retry() {
+    try {
+      const { data, error } = await getSupabaseBrowserClient().auth.getSession();
+      if (error) verifierRef.current?.fail("Your session could not be restored. Try again.");
+      else verifierRef.current?.accept(data.session, true);
+    } catch { verifierRef.current?.fail("Sign-in service is unavailable. Try again."); }
+  }
+
+  return <AuthContext.Provider value={{ ...state, retry }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
