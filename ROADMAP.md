@@ -73,6 +73,8 @@ No product features yet.
 
 ## Phase 3 — Subject system
 
+Implemented: authenticated active-subject list/detail, flat topic APIs, protected subject routes, cycle-safe topic display, and loading/error/empty states. Topics may remain empty until a separately authorized import. No progress formula or metrics are introduced.
+
 - subject list/detail
 - topic hierarchy
 - APIs

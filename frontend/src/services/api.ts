@@ -21,7 +21,11 @@ export async function authenticatedGet<T>(path: string, signal?: AbortSignal): P
     if (signal?.aborted) throw error;
     throw new ApiError("The study service is unavailable. Try again.", 503);
   }
-  if (response.status === 401) throw new ApiError("Your session could not be verified. Please sign in again.", 401);
+  if (response.status === 401) {
+    // All protected pages share the same session provider and redirect after sign-out.
+    try { await getSupabaseBrowserClient().auth.signOut({ scope: "local" }); } catch { /* Keep the 401 visible if Auth is unavailable. */ }
+    throw new ApiError("Your session could not be verified. Please sign in again.", 401);
+  }
   if (!response.ok) throw new ApiError("The study service could not complete the request. Try again.", response.status);
   try {
     return await response.json() as T;

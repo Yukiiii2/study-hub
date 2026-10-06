@@ -12,7 +12,7 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 ## Foundation
 
-Implemented routes are limited to `/health`, `/api/auth/me`, and `GET /api/subjects`. All other routes below remain future contract directions.
+Phase 3 implements `/health`, `/api/auth/me`, and the read-only subject/topic routes documented below. All other routes remain future contract directions.
 
 ### GET /health
 
@@ -26,21 +26,27 @@ Response:
 
 ## Subjects
 
-### Implemented GET /api/subjects
+### GET /api/subjects
 
-Requires `Authorization: Bearer <Supabase access token>`. Returns a JSON array of seeded subject definitions ordered by `display_order`, then `code`. Each item contains `id`, `code`, `name`, `display_order`, nullable `color_key`, `is_active`, `created_at`, and `updated_at`. Data comes from PostgreSQL, not hardcoded API values. No subject-write or detail routes are implemented in Phase 2.
+Requires `Authorization: Bearer <Supabase access token>`. Returns a JSON array of active subjects from PostgreSQL, ordered by `display_order`, then `code`, then `id`. Each item contains only `id`, `code`, `name`, `display_order`, and nullable `color_key`. Phase 3 removes the Phase 2 timestamps and active flag from the public response; the frontend uses the compact schema. No progress metrics are returned.
 
-401: missing/invalid/expired session. 503: authentication or database service unavailable/unconfigured; errors do not expose connection details or provider responses.
+### GET /api/subjects/{subject_id}
 
-Planned subject routes:
+Returns one active subject with the same fields as a list item. Missing or inactive subjects return 404.
 
-- `GET /api/subjects`
-- `GET /api/subjects/{subject_id}`
-- `GET /api/subjects/{subject_id}/topics`
+### GET /api/subjects/{subject_id}/topics
+
+Returns a **flat JSON array** of real topics for an active subject. Each item contains `id`, `subject_id`, nullable `parent_topic_id`, nullable `code`, `title`, nullable `description`, and `display_order`. Items are ordered by `display_order`, then `title`, then `id`. Siblings retain that order when the frontend reconstructs the hierarchy using `parent_topic_id`. No topics returns `[]`; a missing or inactive subject returns 404.
 
 ## Topics
 
-- `GET /api/topics/{topic_id}`
+### GET /api/topics/{topic_id}
+
+Returns one topic with the same fields as the subject topic array. Missing topics or topics belonging to inactive subjects return 404.
+
+All subject/topic GET routes independently require a verified Supabase bearer token. UUID path parameters are validated (422 for malformed UUIDs after authentication). Missing/invalid/expired sessions return 401. Authentication or database failures return sanitized 503 responses. No curriculum create/edit/delete routes are implemented.
+
+The frontend walks topic records iteratively in parent-before-child order. Missing parents appear as roots; malformed cycles are visited at most once per topic so every record remains visible. Visual indentation is capped on deep trees to preserve mobile readability, while accessible text retains the actual level. No sample topics are seeded.
 
 Do not invent a progress-write endpoint until the progress model is defined.
 

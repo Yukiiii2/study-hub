@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardPlaceholder } from "@/features/dashboard/dashboard-placeholder";
 import { ApiError, authenticatedGet } from "@/services/api";
@@ -11,7 +11,7 @@ import { getSupabaseBrowserClient } from "./supabase";
 type VerifiedUser = { id: string; email: string | null };
 type Verification = { token: string; user: VerifiedUser };
 
-export function ProtectedDashboard() {
+export function ProtectedApp({ children }: { children?: ReactNode }) {
   const { session, loading, error: setupError } = useAuth();
   const router = useRouter();
   const [verification, setVerification] = useState<Verification | null>(null);
@@ -97,7 +97,7 @@ export function ProtectedDashboard() {
       </button>
     </div>}>
       {error && <p className="auth-error" role="alert">{error}</p>}
-      <DashboardPlaceholder />
+      {children ?? <><DashboardPlaceholder />
       <section className="integration-check" aria-label="Subject setup check">
         <button className="secondary-button" onClick={checkSubjects} disabled={checkingSubjects}>
           {checkingSubjects ? "Checking subject setup..." : "Check subject setup"}
@@ -105,6 +105,11 @@ export function ProtectedDashboard() {
         {subjectCount !== null && <p role="status">{subjectCount} subject definitions available.</p>}
         {subjectError && <p className="auth-error" role="alert">{subjectError}</p>}
       </section>
+      </>}
     </AppShell>
   );
+}
+
+export function ProtectedDashboard() {
+  return <ProtectedApp />;
 }

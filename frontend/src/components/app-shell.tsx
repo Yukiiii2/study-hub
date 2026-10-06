@@ -1,16 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const plannedAreas = [
-  "Study Plan", "Subjects", "Recall", "Flashcards", "Quizzes",
+  "Study Plan", "Recall", "Flashcards", "Quizzes",
   "Library", "Assessments", "Analytics", "Settings",
 ];
 
 function Navigation() {
+  const pathname = usePathname();
+  const subjectsActive = pathname === "/subjects" || pathname.startsWith("/subjects/");
   return (
     <nav aria-label="Main navigation">
-      <Link className="nav-link active" href="/" aria-current="page">
+      <Link className={`nav-link${pathname === "/" ? " active" : ""}`} href="/" aria-current={pathname === "/" ? "page" : undefined}>
         Dashboard
+      </Link>
+      <Link className={`nav-link${subjectsActive ? " active" : ""}`} href="/subjects" aria-current={subjectsActive ? "page" : undefined}>
+        Subjects
       </Link>
       <p className="nav-caption">Planned areas</p>
       <ul className="planned-nav" aria-label="Planned areas">

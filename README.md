@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 2 - Database and authentication foundation**. Live Supabase setup is required to enable sign-in and apply the schema.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 3 - Subjects and topics**. Sign-in and curriculum reads use the configured Supabase Auth and PostgreSQL project.
 
 ## Repository and architecture
 
@@ -24,9 +24,9 @@ Existing specification files remain at the root to preserve their references. Re
 
 The frontend owns presentation, routing, accessibility, and browser interaction. FastAPI owns application APIs, validation, business logic, and future privileged data access. Next.js does not replace the backend. Neither application requires the other to start.
 
-Current stack: Next.js App Router, React, TypeScript, Tailwind CSS, and the official Supabase JavaScript client; Python, FastAPI, Pydantic, pydantic-settings, Uvicorn, HTTPX, SQLAlchemy, Alembic, and Psycopg. Supabase PostgreSQL and Auth are integrated through configuration; Storage and all study features remain deferred.
+Current stack: Next.js App Router, React, TypeScript, Tailwind CSS, and the official Supabase JavaScript client; Python, FastAPI, Pydantic, pydantic-settings, Uvicorn, HTTPX, SQLAlchemy, Alembic, and Psycopg. Supabase PostgreSQL and Auth are integrated through configuration. Read-only subject and topic browsing is implemented; Storage and later study features remain deferred.
 
-Frontend source is grouped into `src/app`, `src/components`, `src/features/auth`, `src/features/dashboard`, `src/lib`, `src/services`, and `src/styles`. Authentication helpers are separate from FastAPI clients. Backend code lives in `app/api`, `app/core`, `app/db`, `app/repositories`, `app/schemas`, and `app/main.py`; migrations live in `backend/migrations`. Additional folders will be added when actual features need them.
+Frontend source is grouped into `src/app`, `src/components`, `src/features/auth`, `src/features/dashboard`, `src/features/subjects`, `src/lib`, `src/services`, and `src/styles`. Authentication helpers are separate from FastAPI clients. Backend code lives in `app/api`, `app/core`, `app/db`, `app/repositories`, `app/schemas`, and `app/main.py`; migrations live in `backend/migrations`. Additional folders will be added when actual features need them.
 
 ## Prerequisites
 
@@ -134,7 +134,7 @@ Offline generation does not apply or prove the SQL against a live database. See 
 
 Enable email/password authentication in Supabase. Create a test account through the Supabase Dashboard's Authentication > Users interface and ensure it is confirmed/enabled. This phase provides sign-in only; there is no sign-up or password-reset UI.
 
-Open `/login`, sign in, and return to `/`. The official SDK persists and refreshes the browser session. The protected Dashboard waits for FastAPI to verify the access token before rendering the shell. Unauthenticated sessions redirect to `/login`; sign-out ends this browser's session. Session persistence uses browser local storage, not server cookies, so the Next.js page guard is a client guard. Every protected FastAPI endpoint independently enforces authentication; do not use the client guard as authorization for future server-side data.
+Open `/login`, sign in, and return to `/`. The official SDK persists and refreshes the browser session. The protected Dashboard and Subjects pages wait for FastAPI to verify the access token before rendering the shell. Unauthenticated sessions redirect to `/login`; sign-out ends this browser's session. Session persistence uses browser local storage, not server cookies, so the Next.js page guard is a client guard. Every protected FastAPI endpoint independently enforces authentication; do not use the client guard as authorization for future server-side data.
 
 `src/services/api.ts` obtains the current session and sends `Authorization: Bearer <access_token>` to FastAPI. It never queries application tables through the browser SDK. FastAPI validates each token with Supabase's `/auth/v1/user` endpoint; `/api/auth/me` returns only the verified UUID and email. `/api/subjects` reads the database through the backend repository. Missing/invalid sessions return 401, while unavailable/unconfigured services return sanitized 503 errors. `/health` remains public and independently runnable without Supabase credentials.
 
@@ -149,11 +149,31 @@ cd backend
 
 Live verification after setup: sign in, reload to check session persistence, check subject setup (seven on a fresh migration), sign out, and confirm `/` redirects to `/login`. Confirm protected endpoints return 401 without a bearer token. Never paste real tokens into tracked files.
 
+## Subjects and topics (Phase 3)
+
+Open `/subjects` after signing in to browse active subjects from FastAPI. Each compact row links to `/subjects/[subjectId]`, showing the subject name and real curriculum topics. UUID routes use database identities; no frontend subject list is hardcoded. Subject accents use `color_key` presentation metadata (blue, indigo, purple, amber, rose, teal, green), falling back to the application accent when absent or unknown.
+
+Topics use the existing `parent_topic_id` hierarchy with ordered, indented rows. Empty subjects show an intentional explanation that curriculum topics will appear after import/setup. Loading, retryable service errors, and unavailable-subject states are included. All data uses the existing authenticated API client and client guard; FastAPI independently verifies bearer tokens. No new schema, dependencies, sample topics, or progress metrics are introduced.
+
+Read endpoints: `/api/subjects`, `/api/subjects/{subject_id}`, `/api/subjects/{subject_id}/topics`, and `/api/topics/{topic_id}`. See [API.md](API.md) for fields, flat topic response shape, ordering, and status codes.
+
+Narrow checks from each application's directory:
+
+```powershell
+# backend/
+.\.venv\Scripts\python.exe -m unittest tests.test_curriculum tests.test_auth_foundation
+# frontend/
+node tests/topic-hierarchy.cjs
+npm.cmd run build
+```
+
+The hierarchy fixtures are isolated test data; they never populate the application database. Live Phase 3 verification reads the seven seeded subjects and their actual topic records, including the valid zero-topic state. Browser automation is not part of these checks.
+
 ## Current scope and deferrals
 
-The Phase 1 dark shell and placeholder remain intact, with minimal authentication added. Planned navigation is unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
+The Phase 1 dark shell and Dashboard placeholder remain intact. Subjects navigation is functional; later navigation areas remain unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
 
-Intentionally deferred: actual subject/topic management UI, topic data, videos, spreadsheet migration, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, topic import, videos, spreadsheet migration, calendar/planner, tasks/sessions, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Git and deployment
 
