@@ -13,8 +13,7 @@ export function DashboardPlaceholder() {
             place here as Study Hub takes shape.
           </p>
           <p className="placeholder-note">
-            This is the foundation preview. Study tools and account setup are
-            not available yet.
+            This is the foundation preview. Study tools are not available yet.
           </p>
         </div>
       </section>

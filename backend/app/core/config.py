@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     )
 
     cors_origins: str = ""
+    supabase_url: str = ""
+    supabase_service_role_key: SecretStr = SecretStr("")
+    database_url: SecretStr = SecretStr("")
 
     @field_validator("cors_origins")
     @classmethod

@@ -12,6 +12,8 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 ## Foundation
 
+Implemented routes are limited to `/health`, `/api/auth/me`, and `GET /api/subjects`. All other routes below remain future contract directions.
+
 ### GET /health
 
 Response:
@@ -23,6 +25,14 @@ Response:
 ```
 
 ## Subjects
+
+### Implemented GET /api/subjects
+
+Requires `Authorization: Bearer <Supabase access token>`. Returns a JSON array of seeded subject definitions ordered by `display_order`, then `code`. Each item contains `id`, `code`, `name`, `display_order`, nullable `color_key`, `is_active`, `created_at`, and `updated_at`. Data comes from PostgreSQL, not hardcoded API values. No subject-write or detail routes are implemented in Phase 2.
+
+401: missing/invalid/expired session. 503: authentication or database service unavailable/unconfigured; errors do not expose connection details or provider responses.
+
+Planned subject routes:
 
 - `GET /api/subjects`
 - `GET /api/subjects/{subject_id}`
@@ -143,6 +153,16 @@ Later candidates:
 AI endpoints must be authenticated, rate-aware, and source-grounded.
 
 ## Authentication
+
+### Implemented GET /api/auth/me
+
+Requires the Supabase session's access token in the Authorization bearer header. FastAPI forwards the token to Supabase Auth `/auth/v1/user` for verification rather than trusting decoded claims. Successful response:
+
+```json
+{"id": "verified-user-uuid", "email": "user@example.com"}
+```
+
+`email` may be null. No token, session, password, role key, or raw provider data is returned. Missing/invalid/expired tokens return 401 with `WWW-Authenticate: Bearer`; missing backend Auth configuration or provider failures return 503. `/health` remains public. There is no backend sign-in endpoint: the browser signs in directly through the official Supabase Auth client.
 
 Frontend sends the authenticated user's bearer token for protected endpoints.
 

@@ -60,6 +60,18 @@ Never expose backend secrets to frontend code.
 
 ## Local environment files
 
+### Phase 2 Supabase preparation
+
+Use a configured Supabase project (hosted or an independently managed local Supabase instance). This phase does not create external resources. Obtain the project URL, publishable/legacy anon key, backend service-role key, and PostgreSQL connection string from that project. Configure email/password Auth and create a confirmed test user through Authentication > Users; the application has no sign-up UI.
+
+Keep the frontend variable name `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value may be the current publishable key. Never put a secret/service-role key or database URL in any public variable. The backend uses `SUPABASE_SERVICE_ROLE_KEY` only server-side for the Auth verification API; SQLAlchemy uses `DATABASE_URL` for database access. AI variables stay blank.
+
+Set `DATABASE_URL` using the Connect panel's direct or session-pooler connection for migrations, with URL-encoded password characters and TLS (`sslmode=require`) for hosted Supabase. Use the transaction pooler for a serverless runtime when appropriate. The backend uses Psycopg with prepared statements disabled and SQLAlchemy NullPool; Supabase handles pooling. Never copy example project IDs or invent connection credentials.
+
+Apply reviewed migrations from `backend/` with the virtual environment's `python -m alembic upgrade head`. This also seeds the seven CPA subjects and creates/backfills profiles. Use a privileged migration connection with access to the Auth schema and role grants. Runtime startup does not migrate; migration failure must be resolved before enabling database-backed endpoints. This is an initial additive schema migration, not a reset. Downgrade commands that would drop foundation data are blocked.
+
+Configure the frontend API URL and Supabase public values, and the backend Supabase/database values and exact CORS origins independently in their Vercel projects. Redeploy the frontend after public environment changes. Validate sign-in, reload/session persistence, `/api/auth/me`, the Dashboard's subject setup check, and sign-out after migrations. No Storage or AI configuration is needed.
+
 Expected:
 
 ```text

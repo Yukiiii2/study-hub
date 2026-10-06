@@ -1,10 +1,5 @@
-import { AppShell } from "@/components/app-shell";
-import { DashboardPlaceholder } from "@/features/dashboard/dashboard-placeholder";
+import { ProtectedDashboard } from "@/features/auth/protected-dashboard";
 
 export default function DashboardPage() {
-  return (
-    <AppShell>
-      <DashboardPlaceholder />
-    </AppShell>
-  );
+  return <ProtectedDashboard />;
 }

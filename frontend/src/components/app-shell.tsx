@@ -25,7 +25,7 @@ function Navigation() {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, utility }: { children: ReactNode; utility?: ReactNode }) {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="utility-header">
           <span className="desktop-context">CPALE review</span>
           <Link className="mobile-brand" href="/">Study Hub</Link>
-          <span className="phase-label">Foundation preview</span>
+          {utility ?? <span className="phase-label">Foundation preview</span>}
         </header>
         <details className="mobile-navigation">
           <summary>Navigation</summary>
