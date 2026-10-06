@@ -1,0 +1,202 @@
+# ROADMAP.md
+
+## Principle
+
+Build in phases. Do not build the entire platform in one Codex pass.
+
+## Phase 0 — Documentation
+
+Prepared before implementation:
+
+- AGENTS.md
+- PRODUCT.md
+- DESIGN.md
+- DESIGN_GUIDELINES.md
+- ARCHITECTURE.md
+- DATABASE.md
+- API.md
+- IMPORTS.md
+- AI.md
+- DATA_AND_TELEMETRY.md
+- DEPLOYMENT.md
+- GIT_WORKFLOW.md
+- ROADMAP.md
+- README.md
+- CODEX_PROMPTS.md
+
+## Phase 1 — Repository foundation
+
+Create:
+
+- `frontend/`
+- `backend/`
+- `docs/`
+- `data/imports/`
+- `data/templates/`
+- `data/seed/`
+- `scripts/`
+
+Frontend:
+
+- Next.js
+- TypeScript
+- Tailwind
+- minimal app shell
+- environment example
+
+Backend:
+
+- FastAPI
+- config
+- `/health`
+- CORS
+- project structure
+- environment example
+
+Root:
+
+- `.gitignore`
+- README
+- local development instructions
+
+No product features yet.
+
+## Phase 2 — Database and authentication foundation
+
+- Supabase configuration
+- migrations
+- profiles
+- subjects
+- topics
+- auth validation
+- seed subjects
+
+## Phase 3 — Subject system
+
+- subject list/detail
+- topic hierarchy
+- APIs
+- frontend subject pages
+- only defined progress metrics
+
+## Phase 4 — Video tracking
+
+- videos
+- user progress
+- video UI
+- duration/progress summaries
+
+## Phase 5 — Spreadsheet migration
+
+- workbook mapping
+- dry-run importer
+- subject/topic/video migration
+- schedule mapping
+- assessment mapping
+- recall mapping report
+
+## Phase 6 — Calendar and study planner
+
+- study_events
+- study_tasks
+- study_sessions
+- month/week/day
+- add/edit/delete/reschedule
+- recurring events
+- planned vs actual
+- unscheduled tasks
+
+## Phase 7 — Resource library
+
+- Supabase Storage
+- resources
+- upload/list/filter
+- PDF metadata
+- CSV upload
+- processing states
+
+## Phase 8 — PDF and CSV processing
+
+- text PDF extraction
+- page/section references
+- CSV preview/validation
+- quiz CSV import
+- flashcard CSV import
+
+No OCR yet.
+
+## Phase 9 — Quiz engine
+
+- questions/options
+- quizzes
+- attempts/answers
+- scoring
+- explanations
+- results
+- mistake review
+
+## Phase 10 — Flashcards and recall
+
+- decks/cards
+- review history
+- due queue
+- spaced-repetition algorithm after explicit algorithm decision
+- cards from quiz mistakes
+
+## Phase 11 — Assessments
+
+- CRUD
+- coverage
+- calendar integration
+- results
+
+## Phase 12 — Analytics
+
+- study time
+- planned vs actual
+- video completion
+- quiz metrics
+- recall metrics
+- assessment metrics
+- subject analytics
+
+No readiness score until formula is defined.
+
+## Phase 13 — AI
+
+- provider abstraction
+- Gemini integration
+- document summarization
+- source-grounded Q&A
+- quiz generation
+- flashcard generation
+- explanations
+- limits/error states
+
+## Phase 14 — Polish
+
+- responsive review
+- accessibility
+- states
+- performance
+- design consistency
+
+## Phase 15 — Production deployment
+
+- Supabase production configuration
+- Vercel backend
+- Vercel frontend
+- variables
+- CORS
+- migrations
+- manual smoke verification
+
+## Future
+
+- OCR/scanned PDFs
+- DOCX/XLSX imports
+- worker/background queue
+- notifications
+- native mobile app
+- advanced readiness model
+- gamification
