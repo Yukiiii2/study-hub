@@ -54,10 +54,10 @@ Open http://localhost:3000. For a production compile, use `npm.cmd run build`, t
 ```text
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Set `NEXT_PUBLIC_API_URL=http://localhost:8000` and configure the Supabase project URL and public key. `NEXT_PUBLIC_SUPABASE_ANON_KEY` accepts the current publishable key (`sb_publishable_...`) or a legacy anon key; its name is retained for compatibility. Only public values belong in this file; never put service-role, secret, database, or AI keys in frontend code or variables. Restart the dev server after changing environment values.
+Set `NEXT_PUBLIC_API_URL=http://localhost:8000` and configure the Supabase project URL and current publishable key (`sb_publishable_...`) in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Legacy anon keys are not used. Only public values belong in this file; never put secret, database, or AI keys in frontend code or variables. Restart the dev server after changing environment values.
 
 ## Backend development
 
@@ -88,13 +88,13 @@ python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ```text
 SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 DATABASE_URL=
 GEMINI_API_KEY=
 CORS_ORIGINS=
 ```
 
-Configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000` for local browser requests. Multiple explicit origins use a comma-separated list, for example `http://localhost:3000,http://127.0.0.1:3000`. An empty value allows no cross-origin browser access; wildcard origins are rejected. Current application endpoints use GET only.
+Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000` for local browser requests. Multiple explicit origins use a comma-separated list, for example `http://localhost:3000,http://127.0.0.1:3000`. An empty value allows no cross-origin browser access; wildcard origins are rejected. Current application endpoints use GET only.
 
 Health endpoint: GET http://localhost:8000/health returns HTTP 200:
 
@@ -110,7 +110,7 @@ The root `.env.example` only points to application-specific files; no root envir
 
 Use an existing hosted Supabase project or your own separately configured local Supabase instance. A plain PostgreSQL database alone is insufficient: the migrations require Supabase's `auth.users`, `auth.uid()`, and `anon`/`authenticated` roles. No external project is created automatically.
 
-Obtain the project URL and publishable/anon key from Supabase project settings. Obtain the backend-only service-role key and PostgreSQL connection string separately. Use the Connect panel's direct or session-pooler connection for migrations; the session pooler is useful on IPv4 networks. `DATABASE_URL` accepts `postgresql://...` or `postgresql+psycopg://...`. Copy the actual connection details, URL-encode special characters in the database password, and require TLS for hosted connections with `?sslmode=require`. Use the Connect panel's transaction-pooler URL for a serverless backend if appropriate; the driver disables prepared statements and application pooling.
+Obtain the project URL and current publishable key from Supabase project settings. Obtain the backend-only current secret key (`sb_secret_...`) and PostgreSQL connection string separately. Use the Connect panel's direct or session-pooler connection for migrations; the session pooler is useful on IPv4 networks. `DATABASE_URL` accepts `postgresql://...` or `postgresql+psycopg://...`. Copy the actual connection details, URL-encode special characters in the database password, and require TLS for hosted connections with `?sslmode=require`. Use the Connect panel's transaction-pooler URL for a serverless backend if appropriate; the driver disables prepared statements and application pooling. Never put credentials in examples or terminal output; real values belong only in the two Git-ignored application environment files.
 
 From `backend/`, after setting `backend/.env`:
 

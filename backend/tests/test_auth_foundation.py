@@ -17,7 +17,7 @@ class AuthFoundationChecks(unittest.IsolatedAsyncioTestCase):
         self.settings = Settings(
             _env_file=None,
             supabase_url="https://project.example",
-            supabase_service_role_key="test-only-key",
+            supabase_secret_key="sb_secret_test_only",
         )
         app.dependency_overrides[get_settings] = lambda: self.settings
         self.real_client = httpx.AsyncClient
@@ -44,7 +44,7 @@ class AuthFoundationChecks(unittest.IsolatedAsyncioTestCase):
         def handler(request):
             self.assertEqual(request.url.path, "/auth/v1/user")
             self.assertEqual(request.headers["Authorization"], "Bearer test-token")
-            self.assertEqual(request.headers["apikey"], "test-only-key")
+            self.assertEqual(request.headers["apikey"], "sb_secret_test_only")
             return httpx.Response(200, json={"id": USER_ID, "email": "reviewer@example.com", "role": "authenticated"})
 
         with self.mock_auth(handler):

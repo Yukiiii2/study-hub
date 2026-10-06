@@ -207,7 +207,7 @@ Service-role credentials are backend-only.
 
 ### Implemented Phase 2 boundaries
 
-The official Supabase JavaScript client lives in `frontend/src/features/auth/` and is used only for email/password sign-in, session persistence/refresh, and local-browser sign-out. `NEXT_PUBLIC_SUPABASE_ANON_KEY` accepts either a publishable key or legacy anon key. The login route is `/login`; the existing shell at `/` uses a client session guard and waits for backend identity verification. No cookies or Next.js server auth APIs are introduced. The client guard is navigation behavior, never the security authority for data.
+The official Supabase JavaScript client lives in `frontend/src/features/auth/` and is used only for email/password sign-in, session persistence/refresh, and local-browser sign-out. `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` requires a current publishable key; backend configuration uses `SUPABASE_SECRET_KEY` for the current secret key. Legacy anon/service-role variables are not used by the application. The login route is `/login`; the existing shell at `/` uses a client session guard and waits for backend identity verification. No cookies or Next.js server auth APIs are introduced. The client guard is navigation behavior, never the security authority for data.
 
 `frontend/src/services/api.ts` sends the current bearer access token to FastAPI. A reusable dependency in `backend/app/core/auth.py` validates it through Supabase Auth's `/auth/v1/user` endpoint using HTTPX and a backend-only API key. Only the verified UUID/email cross the auth boundary. Supabase outages fail closed with 503; invalid sessions return 401. No local unverified JWT decoding is used.
 

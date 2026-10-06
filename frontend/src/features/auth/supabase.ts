@@ -6,13 +6,13 @@ export function getSupabaseBrowserClient(): SupabaseClient {
   if (client) return client;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  // Supports a current publishable key or the legacy anon key, never a secret key.
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Only the current publishable key belongs in browser authentication.
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {
     throw new Error("Sign-in is not configured. Set the public Supabase environment values.");
   }
-  if (key.startsWith("sb_secret_")) {
-    throw new Error("Sign-in requires a public Supabase key.");
+  if (!key.startsWith("sb_publishable_")) {
+    throw new Error("Sign-in requires a Supabase publishable key.");
   }
 
   client = createClient(url, key, {

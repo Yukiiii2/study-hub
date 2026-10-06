@@ -22,7 +22,7 @@ async def get_current_user(
     if credentials is None:
         raise unauthorized
 
-    key = settings.supabase_service_role_key.get_secret_value()
+    key = settings.supabase_secret_key.get_secret_value()
     if not settings.supabase_url or not key:
         raise HTTPException(status_code=503, detail="Authentication is not configured.")
 

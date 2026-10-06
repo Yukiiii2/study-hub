@@ -41,7 +41,7 @@ Vercel FastAPI backend
 ```text
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
 Only truly public variables may use `NEXT_PUBLIC_`.
@@ -50,7 +50,7 @@ Only truly public variables may use `NEXT_PUBLIC_`.
 
 ```text
 SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 DATABASE_URL=
 GEMINI_API_KEY=
 CORS_ORIGINS=
@@ -62,9 +62,9 @@ Never expose backend secrets to frontend code.
 
 ### Phase 2 Supabase preparation
 
-Use a configured Supabase project (hosted or an independently managed local Supabase instance). This phase does not create external resources. Obtain the project URL, publishable/legacy anon key, backend service-role key, and PostgreSQL connection string from that project. Configure email/password Auth and create a confirmed test user through Authentication > Users; the application has no sign-up UI.
+Use a configured Supabase project (hosted or an independently managed local Supabase instance). This phase does not create external resources. Obtain the project URL, publishable key, backend secret key, and PostgreSQL connection string from that project. Configure email/password Auth and create a confirmed test user through Authentication > Users; the application has no sign-up UI.
 
-Keep the frontend variable name `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value may be the current publishable key. Never put a secret/service-role key or database URL in any public variable. The backend uses `SUPABASE_SERVICE_ROLE_KEY` only server-side for the Auth verification API; SQLAlchemy uses `DATABASE_URL` for database access. AI variables stay blank.
+Use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the current publishable key and `SUPABASE_SECRET_KEY` for the current secret key. Legacy anon/service-role environment variables are not used. Never put a secret key or database URL in any public variable. The backend sends the secret key only as the Auth verification API's `apikey` header; the user's access token remains the bearer token. SQLAlchemy uses `DATABASE_URL` for database access. AI variables stay blank. Real local credentials belong only in the Git-ignored `frontend/.env.local` and `backend/.env` files.
 
 Set `DATABASE_URL` using the Connect panel's direct or session-pooler connection for migrations, with URL-encoded password characters and TLS (`sslmode=require`) for hosted Supabase. Use the transaction pooler for a serverless runtime when appropriate. The backend uses Psycopg with prepared statements disabled and SQLAlchemy NullPool; Supabase handles pooling. Never copy example project IDs or invent connection credentials.
 
