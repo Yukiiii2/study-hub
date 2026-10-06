@@ -114,6 +114,10 @@ Implemented: owner-scoped events/tasks/sessions plus minimal recurring occurrenc
 - planned vs actual
 - unscheduled tasks
 
+## Phase 6.5 — Dashboard refresh
+
+Implemented: a compact real-data Dashboard with profile-timezone Today events, recurring occurrences, next five pending tasks by due date (undated last), active subject topic/video/completion counts and independent lecture count/duration totals. One authenticated read-only summary endpoint avoids downloading all topic/lecture lists. The shared auth layout persists; page refresh retains existing content. Unknown durations remain explicit; no composite percentages, analytics, new schema/dependencies or Phase 7 features are added. Quick actions use existing Study Plan, Subjects and Videos routes; foundation copy is removed.
+
 ## Phase 7 — Resource library
 
 - Supabase Storage

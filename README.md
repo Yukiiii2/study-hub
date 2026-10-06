@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 6 - Calendar and study planner**, following the user-directed phase order. Sign-in, curriculum, private video progress, and owner-scoped plans/sessions use the configured Supabase Auth and PostgreSQL project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 6.5 - Dashboard refresh**, following the user-directed phase order. Sign-in, curriculum, private video progress, and owner-scoped plans/sessions use the configured Supabase Auth and PostgreSQL project.
 
 ## Repository and architecture
 
@@ -140,7 +140,7 @@ Open `/login`, sign in, and return to `/`. The official SDK persists and refresh
 
 On a rejected token, the API client uses SDK session recovery/one shared refresh and retries once before clearing a genuinely rejected session. Temporary service/refresh failures retain the current UI with a retry action; late requests cannot clear a replacement account/session. Focused regressions from `frontend/`: `node tests/auth-session.cjs`, `node tests/auth-api.cjs`, and `node tests/auth-render.cjs`. Optional live auth verification from the root: `node scripts/verify_frontend_auth.cjs`; it uses existing ignored verification credentials, prints no secrets, and performs no application-data writes. Rendering/focus-event regressions do not replace a manual browser check of alt-tab, navigation, and persisted storage.
 
-The Dashboard includes a small authenticated-user indicator and a **Check subject setup** button, which reads the protected subject definitions and displays the actual returned count. This verifies the browser-to-FastAPI-to-database path without building subject management.
+The shared header shows the authenticated account and sign-out action. The Dashboard loads its real study summary through the protected `/api/dashboard` endpoint, described below.
 
 Narrow backend checks (mocked Supabase and database boundaries):
 
@@ -149,7 +149,17 @@ cd backend
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_auth_foundation.py -v
 ```
 
-Live verification after setup: sign in, reload to check session persistence, check subject setup (seven on a fresh migration), sign out, and confirm `/` redirects to `/login`. Confirm protected endpoints return 401 without a bearer token. Never paste real tokens into tracked files.
+Live verification after setup: sign in, reload to check session persistence, browse the seven seeded subjects, sign out, and confirm `/` redirects to `/login`. Confirm protected endpoints return 401 without a bearer token. Never paste real tokens into tracked files.
+
+## Dashboard (Phase 6.5)
+
+The home route shows today's real events in the profile timezone (including recurring occurrences), the next five pending tasks ordered by due date with undated tasks last, lecture completion counts/known duration totals, and compact subject rows with topic/video/completed-video counts. Continue Videos opens the first subject with an in-progress lecture, otherwise the first with unfinished lectures in curriculum order. When everything is complete, Browse Videos remains available. Study Plan, Subjects and each subject's Topics/Videos links use implemented routes only.
+
+One authenticated `GET /api/dashboard` request replaces per-subject topic/video downloads. FastAPI reads a consistent, read-only PostgreSQL snapshot, scopes progress/tasks/events to the verified user, and reuses the planner's occurrence expansion. Empty schedules/tasks are shown honestly. Unknown video durations are counted separately and excluded from time totals; lecture duration is not measured study time or composite subject progress. No fake percentages, charts, schema changes, new dependencies or later-phase features are introduced.
+
+The existing shared auth layout stays mounted. Dashboard loading is confined to page content; Refresh retains loaded data while requesting current values and shows a retryable error on failure. Navigating back to Dashboard loads current data again. Desktop places Today/tasks beside the lecture summary; narrow screens put Today and tasks first in one column. Outdated foundation copy and the subject-setup check are removed.
+
+Focused checks: `python -m unittest tests.test_dashboard` from `backend/`, `node tests/dashboard-render.cjs` and `npm.cmd run build` from `frontend/`. Optional read-only live comparison from the root: `node scripts/verify_frontend_dashboard.cjs`. It uses existing ignored verification credentials, compares every subject's counts/durations and today's events/pending tasks against existing APIs, renders the actual dashboard with that response, and checks implemented route responses on port 3001. It saves no private payloads and prints no credentials. Browser focus/navigation flicker still needs a manual browser observation when browser tooling is unavailable.
 
 ## Subjects and topics (Phase 3)
 
@@ -201,7 +211,7 @@ Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.m
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
-The Phase 1 dark shell and Dashboard placeholder remain intact. Subjects navigation is functional; later navigation areas remain unavailable. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping are mandatory for future user-owned repositories.
+The dark shell remains intact; Dashboard, Study Plan, Subjects and Videos are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
 Intentionally deferred: subject/topic editing, generic source imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 

@@ -7,6 +7,7 @@ from app.api.subjects import router as subjects_router
 from app.api.topics import router as topics_router
 from app.api.videos import router as videos_router
 from app.api.planner import router as planner_router
+from app.api.dashboard import router as dashboard_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -25,3 +26,4 @@ app.include_router(subjects_router)
 app.include_router(topics_router)
 app.include_router(videos_router)
 app.include_router(planner_router)
+app.include_router(dashboard_router)

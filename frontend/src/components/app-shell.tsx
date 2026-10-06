@@ -31,7 +31,6 @@ function Navigation() {
           </li>
         ))}
       </ul>
-      <p className="nav-note">Planned areas are not available yet.</p>
     </nav>
   );
 }
@@ -50,7 +49,7 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
         <header className="utility-header">
           <span className="desktop-context">CPALE review</span>
           <Link className="mobile-brand" href="/">Study Hub</Link>
-          {utility ?? <span className="phase-label">Foundation preview</span>}
+          {utility ?? <span className="phase-label">Study workspace</span>}
         </header>
         <details className="mobile-navigation">
           <summary>Navigation</summary>

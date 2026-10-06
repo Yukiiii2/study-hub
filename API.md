@@ -12,7 +12,7 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 ## Foundation
 
-Phases 1–6 implement `/health`, `/api/auth/me`, subject/topic reads, video reads/progress and owner-scoped planner APIs documented below. Other routes remain future contract directions.
+Phases 1–6.5 implement `/health`, `/api/auth/me`, subject/topic reads, video reads/progress, owner-scoped planner APIs and a read-only dashboard summary documented below. Other routes remain future contract directions.
 
 ### GET /health
 
@@ -23,6 +23,21 @@ Response:
   "status": "ok"
 }
 ```
+
+## Dashboard (implemented Phase 6.5)
+
+### GET /api/dashboard
+
+Requires the verified Supabase bearer identity; accepts no client ownership or date-range parameters. Missing/invalid authentication returns 401; provider/database/invalid stored-data failures return sanitized 503 responses. Reads a consistent, read-only PostgreSQL snapshot without creating plans or progress rows. Response:
+
+- `date`, `timezone`, `generated_at`: today's date in the profile timezone and the aware response-generation instant.
+- `today_events`: existing occurrence response fields plus nullable `subject_code` and `topic_title`. Includes all events overlapping the local day, ordered by start/id, using the same recurrence/snapshot/deletion rules as `/api/study-events`. Status is preserved, including completed/skipped/cancelled items.
+- `upcoming_tasks`: existing task response fields plus nullable `subject_code` and `topic_title`. Only this user's pending tasks, at most five, ordered by `due_at ASC NULLS LAST`, then `created_at` and `id`. Overdue pending tasks remain visible.
+- `subjects`: active subject response fields plus `topic_count`, `video_count` and `completed_video_count`, in existing curriculum order. Counts include all real topics/lectures, but completions belong only to the current user. Subjects with no topics/videos return real zero counts.
+- `video_summary`: existing lecture-summary fields plus `remaining_videos` (total minus completed), aggregated across active subjects. Known durations only; no partial watch-time or composite progress calculation.
+- `continue_video_subject_id`: first active subject in curriculum order with an in-progress lecture; otherwise the first with unfinished lectures; null when none remain. Clients may offer Browse Videos using a subject with lectures when all are complete.
+
+No user IDs, tokens, source locators or private data from other users are returned. The frontend makes one summary request per Dashboard mount or explicit Refresh, uses the shared authenticated layout and keeps loaded content during refresh/failure. Existing APIs remain unchanged.
 
 ## Subjects
 

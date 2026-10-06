@@ -55,6 +55,8 @@ Do not invent weightings during unrelated implementation. Until defined, expose 
 
 Phase 5 uses independent lecture metrics only. Completed count is the current user's `completed` rows joined to available videos. Completed lecture time sums those videos' known `duration_seconds`; remaining lecture time is total known duration minus completed duration. Unknown durations are reported separately and excluded from time sums. `in_progress` contributes no partial watch time; `watched_seconds` is not measured or writable in this phase. These values are source lecture lengths, not actual study time or a composite subject progress percentage. No workbook checkboxes are transferred to user progress.
 
+Phase 6.5 exposes these same metrics across active subjects on Dashboard: total/completed/remaining video counts, known completed/remaining lecture duration and unknown-duration count. Per-subject topic/video/completed-video counts are independent inventory/progress values. No weighted subject score, streak, planned-vs-actual aggregation, charts or external telemetry is introduced. Today uses the profile's local-day boundaries and existing recurrence expansion; upcoming tasks are pending only, with overdue tasks first according to due-date order and undated tasks last. Reads do not manufacture events, tasks, sessions or video progress.
+
 ## Quiz metrics
 
 - attempts

@@ -1,31 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { ApiError, authenticatedGet } from "@/services/api";
-import { DashboardPlaceholder } from "./dashboard-placeholder";
+import { useEffect, useState } from "react";
+import { ApiError } from "@/services/api";
+import { getDashboard, type DashboardData } from "@/services/dashboard";
+import { DashboardView } from "./dashboard-view";
 
 export function Dashboard() {
-  const [subjectCount, setSubjectCount] = useState<number | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [refreshing, setRefreshing] = useState(true);
+  const [revision, setRevision] = useState(0);
 
-  async function checkSubjects() {
-    setChecking(true); setError(null); setSubjectCount(null);
-    try {
-      const subjects = await authenticatedGet<{ id: string; code: string }[]>("/api/subjects");
-      setSubjectCount(subjects.length);
-    } catch (error) {
-      setError(error instanceof ApiError ? error.message : "Could not check subject setup. Try again.");
-    } finally { setChecking(false); }
-  }
+  useEffect(() => {
+    const controller = new AbortController();
+    setRefreshing(true); setError(null);
+    void getDashboard(controller.signal).then((result) => {
+      if (!controller.signal.aborted) setData(result);
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setError(error instanceof ApiError ? error.message : "Could not load your dashboard. Try again.");
+    }).finally(() => { if (!controller.signal.aborted) setRefreshing(false); });
+    return () => controller.abort();
+  }, [revision]);
 
-  return <><DashboardPlaceholder />
-    <section className="integration-check" aria-label="Subject setup check">
-      <button className="secondary-button" onClick={checkSubjects} disabled={checking}>
-        {checking ? "Checking subject setup..." : "Check subject setup"}
-      </button>
-      {subjectCount !== null && <p role="status">{subjectCount} subject definitions available.</p>}
-      {error && <p className="auth-error" role="alert">{error}</p>}
-    </section>
-  </>;
+  return <DashboardView data={data} error={error} refreshing={refreshing} onRefresh={() => setRevision((value) => value + 1)} />;
 }
