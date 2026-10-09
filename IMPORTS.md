@@ -6,6 +6,36 @@ Defines how the existing spreadsheet and future PDF/CSV uploads enter CPA Study 
 
 ## General pipeline
 
+### Phase 10 assessment workbook import
+
+`python -m app.services.assessment_import --user-id <existing-profile-uuid>` from
+backend produces a dry-run Markdown report and local approval manifest. It reads
+`data/imports/Project 1.xlsx` and ASSESSMENTS only. Subject columns and merged
+section titles are validated; actual MONTLY spelling is retained. No dates exist.
+Exact subject plus whitespace-normalized curriculum title matching is required;
+unmatched labels are excluded and reported. The fifth section's explicit AP
+"All topics" becomes whole-subject scope, superseding redundant AP topic links.
+Descriptions disclose partial mappings. Checkboxes/formulas never create scores,
+attempts, completion status or history.
+
+After reviewing the dry run, add `--commit --approved-plan <dry-run.plan.json>` and
+`--report <migration-report.md>`. The CLI locks the selected existing owner,
+revalidates the source/database plan inside an insert-only transaction and aborts
+on conflicts. Identity is owner plus source_key `project-1:ASSESSMENTS:A<row>`.
+Existing identical definitions are unchanged; edited definitions, coverage changes
+or unkeyed same-title rows are conflicts, never silently overwritten. A second
+dry run must propose zero inserts. Source workbook and JSON approval manifests
+remain ignored; safe curriculum-only Markdown reports may be committed. No owner
+emails/UUIDs, private progress/results or credentials belong in those reports.
+
+The validated import created five definitions for the explicitly selected account,
+71 selected-topic links and one whole AP link. Excluded unresolved labels: 74;
+per-section exclusions13/15/17/13/16. Dates and results imported: zero.
+[Dry run](data/imports/reports/project-1-assessment-dry-run.md),
+[migration](data/imports/reports/project-1-assessment-migration.md), and
+[second dry run](data/imports/reports/project-1-assessment-second-dry-run.md)
+document the mapping and zero-insert/five-unchanged rerun.
+
 ```text
 source
  -> detect/select type

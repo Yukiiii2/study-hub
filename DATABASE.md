@@ -437,24 +437,57 @@ See [Phase 9](docs/phase-9-flashcards.md) for bounds and due-date semantics.
 
 ## Assessments
 
+Implemented Phase 10 with additive `0008_assessments`. Four private tables use
+owner SELECT RLS, denied direct browser writes, composite owner foreign keys and
+backend verified ownership. Definition deletion archives and retains coverage and
+results. All list/history queries are bounded; practical owner/date/coverage indexes.
+
 ### assessments
 
 - id
 - user_id
 - title
-- assessment_date nullable
+- description nullable
+- scheduled_at nullable
 - status
-- score_value nullable
-- score_percent nullable
-- notes nullable
+- source_key nullable (owner-unique import identity, not a client input)
 - created_at
 - updated_at
 
 ### assessment_topics
 
 - assessment_id
+- user_id
 - topic_id
-- coverage_status nullable
+- display_order
+
+### assessment_subjects
+
+- assessment_id
+- user_id
+- subject_id
+- display_order
+
+Whole-subject coverage is explicit, never inferred from a workbook column header.
+Subjects for selected topics are derived. Duplicate links and topic/whole-subject
+overlap are rejected. Effective covered topics are a deduplicated union.
+
+### assessment_attempts
+
+- id
+- assessment_id
+- user_id
+- started_at nullable
+- completed_at nullable
+- score/max_score nullable (both known or both absent)
+- percentage nullable (server-derived, four decimals)
+- notes nullable
+- created_at/updated_at
+
+Finite scores require completion time, positive maximum and 0 <= score <= maximum;
+known completion cannot precede known start. Unscored history remains unscored.
+Readiness components derive from existing progress, never from imported checkboxes.
+Exact rules and model: [Phase 10](docs/phase-10-assessments.md).
 
 ## Progress and analytics
 

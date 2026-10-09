@@ -155,18 +155,19 @@ versioned backend scheduling and revision/request retry protection; manual edita
 quiz-mistake conversion; real Dashboard due counts. Workbook recall stays report-only,
 with 155/156 exact topic matches and no imported repetition history or invented cards.
 
-## Phase 10 - Not started
+## Phase 10 - Assessments
 
-Await the user's next phase instruction. The remaining original roadmap below is
-future scope, not authorization to begin it. AI cards, flashcard CSV import,
-assessments, advanced analytics and focus timers are not part of Phase 9.
+Private definitions, selected-topic/explicit whole-subject coverage, editable dates,
+manual attempt results/history, transparent existing-progress components and
+authenticated ownership/RLS. Workbook definitions/coverage use validated exact
+mapping, transactional insert-only import and zero-insert reruns; missing dates,
+unmatched labels and checkbox/formula results remain unimported and documented.
+No AI, composite readiness formula, advanced analytics or automatic calendar writes.
 
-## Phase 11 — Assessments
+## Phase 11 - Not started
 
-- CRUD
-- coverage
-- calendar integration
-- results
+Await the user's next instruction. Remaining roadmap entries are future scope,
+not authorization to begin them.
 
 ## Phase 12 — Analytics
 

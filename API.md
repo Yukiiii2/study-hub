@@ -225,10 +225,32 @@ and server as_of; no analytics endpoint is added. Exact bounds/fields are in
 
 ## Assessments
 
-- `GET /api/assessments`
-- `POST /api/assessments`
-- `PATCH /api/assessments/{assessment_id}`
-- `DELETE /api/assessments/{assessment_id}`
+Implemented Phase 10, authenticated and owner-scoped:
+
+- `GET /api/assessments`: bounded list, status/q filters, limit50/max100, offset0.
+- `POST /api/assessments`: title, optional description/scheduled_at/status,
+  topic_ids and subject_ids (explicit whole-subject coverage).
+- `GET /api/assessments/{id}`: coverage and transparent readiness components.
+- `PATCH /api/assessments/{id}`: partial definition/coverage update.
+- `DELETE /api/assessments/{id}`: archive; coverage and attempt history retained.
+- `GET /api/assessments/{id}/attempts`: bounded persisted result history.
+- `POST /api/assessments/{id}/attempts`: optional manual start/completion, score,
+  max_score and notes. Null result is allowed; no fabricated score.
+- `PATCH /api/assessment-attempts/{id}`: partial manual result correction.
+
+Ownership and percentage are never client inputs. Score/max_score must be supplied
+together, with positive maximum, 0 <= score <= maximum, and completed_at for scored
+results. Scores allow up to 14 integer digits and four decimal places.
+Percentage = score/max_score*100, server-rounded to four decimal places.
+Both timestamps require completion >= start. Archived definitions reject attempt
+writes; history remains readable. Foreign/missing404, invalid422, archived409,
+dependency503 with safe errors. Create201, reads/patch200, archive204.
+
+Selected-topic subject labels are derived; subject_ids means whole subjects only.
+Reject overlap and invalid/inactive curriculum. Detail readiness uses effective
+topic union, own video completions, graded own completed quiz snapshots, and own
+active recall state. Zero-denominator percentages are null. No weighted readiness
+score or mastery claim. Exact DTOs and filters: [Phase 10](docs/phase-10-assessments.md).
 
 ## Analytics
 

@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 9 - Flashcards and spaced repetition**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes and flashcard recall use the configured Supabase project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 10 - Assessments**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes, flashcard recall and private assessments use the configured Supabase project.
 
 ## Repository and architecture
 
@@ -211,9 +211,9 @@ Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.m
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
-The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library, Quizzes, Flashcards and Recall are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
+The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library, Quizzes, Flashcards, Recall and Assessments are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, analytics, and AI. There are no fake study metrics or charts.
 
 ## Resource Library (Phase 7)
 
@@ -293,7 +293,28 @@ Focused live validation from root:
 It creates temporary synthetic accounts/cards/quizzes/resources, checks authenticated
 CRUD, due scheduling, retry concurrency and RLS, then cleans up its own fixtures.
 Secrets and file/card contents are not printed. AI/PDF-generated cards, flashcard
-CSV import, assessments, timers and advanced analytics remain deferred.
+CSV import, timers and advanced analytics remain deferred; assessments are introduced below.
+
+## Assessments (Phase 10)
+
+`/assessments` provides private definitions, upcoming dates, exact topic or explicit
+whole-subject coverage, manual results/history and editable detail pages. Delete
+archives the definition, retaining its coverage/results. Scored attempts require a
+completion time and a valid score/maximum pair; percentages are server-derived.
+Readiness shows covered curriculum, own video completion, own graded quiz answers
+and active recall due state. These components are not a weighted readiness score.
+
+Apply additive `0008_assessments` using `python -m alembic upgrade head` from backend.
+No new dependencies or environment values. The private workbook importer requires
+an explicit existing owner and a reviewed dry run; see IMPORTS.md and
+[the Phase 10 contract](docs/phase-10-assessments.md). Missing dates, unmatched topic
+labels, checkboxes and formulas never become invented dates/results/history.
+
+Focused validation: from backend run
+`python -m unittest tests.test_assessments tests.test_assessment_import`.
+From root, `backend/.venv/Scripts/python.exe scripts/verify_assessments.py --run`
+uses temporary synthetic accounts/progress and
+cleans up its own data. AI, advanced analytics and Phase 11 remain deferred.
 
 ## Git and deployment
 

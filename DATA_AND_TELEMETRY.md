@@ -113,6 +113,15 @@ Future aggregate candidates:
 
 ## Assessment metrics
 
+Phase 10 records manual assessment results separately from planned definitions.
+Known score/max_score yields server percentage; unscored results stay null. Source
+checkboxes/formulas are never assessment attempts. Definition archival keeps history.
+Coverage readiness displays current own video completion, graded completed quiz
+snapshot answers (repeat attempts included) and active due/overdue recall. Zero
+denominators display no-data, not zero performance. Selected-topic coverage is
+explicit, whole-subject scope only when supplied. No weighted readiness, mastery
+estimate or source checkbox progress is introduced.
+
 - upcoming date
 - covered topics
 - prerequisite study where defined

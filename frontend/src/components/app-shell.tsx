@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const plannedAreas = [
-  "Assessments", "Analytics", "Settings",
+  "Analytics", "Settings",
 ];
 
 function Navigation() {
@@ -14,6 +14,7 @@ function Navigation() {
   const libraryActive = pathname === "/library" || pathname.startsWith("/library/");
   const quizzesActive = pathname === "/quizzes" || pathname.startsWith("/quizzes/") || pathname === "/question-bank";
   const flashcardsActive = pathname === "/flashcards" || pathname.startsWith("/flashcards/");
+  const assessmentsActive = pathname === "/assessments" || pathname.startsWith("/assessments/");
   return (
     <nav aria-label="Main navigation">
       <Link className={`nav-link${pathname === "/" ? " active" : ""}`} href="/" aria-current={pathname === "/" ? "page" : undefined}>
@@ -36,6 +37,9 @@ function Navigation() {
       </Link>
       <Link className={`nav-link${flashcardsActive ? " active" : ""}`} href="/flashcards" aria-current={flashcardsActive ? "page" : undefined}>
         Flashcards
+      </Link>
+      <Link className={`nav-link${assessmentsActive ? " active" : ""}`} href="/assessments" aria-current={assessmentsActive ? "page" : undefined}>
+        Assessments
       </Link>
       <p className="nav-caption">Planned areas</p>
       <ul className="planned-nav" aria-label="Planned areas">
