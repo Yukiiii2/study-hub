@@ -253,6 +253,14 @@ See `DEPLOYMENT.md`.
 
 ## Architectural invariants
 
+Phase 9 adds private decks/cards/reviews through separate FastAPI schemas/routes/
+repositories/services, reusing verified identity, curriculum checks and resources.
+The pure versioned scheduling service calculates server-owned intervals/dates;
+one transaction locks card revision, persists immutable history and advances current
+state. No queue/worker, extra auth listener, new SDK or frontend scheduling authority.
+Next.js reuses shared authenticated layout and renders editable authoring and
+reveal/rating views. Workbook recall inspection is read-only and report-only.
+
 Phase 8 keeps validation, source ownership, CSV normalization and scoring in
 FastAPI, with separate quiz routes/schemas/repositories/services and a dedicated
 CSV parser/import service. PostgreSQL stores questions/options, ordered quizzes,

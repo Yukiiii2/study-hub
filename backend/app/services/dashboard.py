@@ -26,6 +26,7 @@ def get_dashboard(user_id: UUID, *, now: datetime | None = None) -> DashboardRes
         events, snapshots = planner_repo.event_range(connection, user_id, start, end)
         today_events = expand_events(events, snapshots, start, end)
         tasks = repo.pending_tasks(connection, user_id)
+        recall = repo.recall_counts(connection, user_id, start, now)
         subject_labels, topic_labels = repo.curriculum_labels(connection, [*today_events, *tasks])
 
     def context(row):
@@ -43,6 +44,7 @@ def get_dashboard(user_id: UUID, *, now: datetime | None = None) -> DashboardRes
         today_events=[DashboardEvent.model_validate(context(row)) for row in today_events],
         upcoming_tasks=[DashboardTask.model_validate(context(row)) for row in tasks],
         subjects=[DashboardSubject.model_validate(row) for row in subjects],
+        recall_summary=recall,
         video_summary=DashboardVideoSummary(
             total_videos=total_videos, completed_videos=completed_videos, remaining_videos=total_videos - completed_videos,
             total_duration_seconds=total_duration, completed_duration_seconds=completed_duration,

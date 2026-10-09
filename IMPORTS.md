@@ -272,6 +272,10 @@ Validate question, answer, options, subject/topic mapping, encoding, duplicates,
 
 ### Flashcard CSV
 
+CSV flashcard import remains deferred in Phase 9; Library CSV preview does not
+create cards. Users author front/back or explicitly edit a submitted quiz mistake.
+No PDF/AI generation is implemented.
+
 ```text
 subject
 topic
@@ -280,6 +284,26 @@ back
 ```
 
 Validate front/back, mapping, and duplicates.
+
+### Phase 9 workbook recall analysis
+
+From `backend/`, run `python -m app.services.recall_inspect` with the existing
+optional workbook-reading requirements. Defaults to `data/imports/Project 1.xlsx`;
+`--workbook` and `--report` override paths. This CLI has no commit mode or database
+writes. It compares column-A literal topic titles to unique existing subject/title
+matches, whitespace-normalized only; MS maps to MAS. Safe proposal:
+[recall topic mapping](data/imports/reports/project-1-recall-proposal.md).
+
+Seven sheets yield 156 references, 155 exact matches: MAS17, AT17, AP19 of20,
+RFBT21, TAX24, FAR43, AFAR14. `AP Recall!A6` remains unresolved; no spelling/title
+correction or topic is invented. RFBT's A1 header differs, while its repetition
+layout corroborates column A. B and C–L contain First Rep and R1–R5/rating pairs;
+M/N contain formula-derived next/final values; O contains remarks. Cell types are
+reported in aggregate without personal values, formulas, dates or private IDs.
+
+Decision: zero cards/reviews imported. Reliable topic references do not supply
+authored front/back, verified ownership or unambiguous review semantics. Preserve
+the workbook; the separately documented backend scheduler governs new reviews.
 
 ### Topic CSV
 

@@ -28,6 +28,11 @@ class DashboardVideoSummary(VideoSummary):
     remaining_videos: int
 
 
+class DashboardRecallSummary(BaseModel):
+    overdue: int
+    due_today: int
+
+
 class DashboardResponse(BaseModel):
     date: date
     timezone: str
@@ -35,5 +40,6 @@ class DashboardResponse(BaseModel):
     today_events: list[DashboardEvent]
     upcoming_tasks: list[DashboardTask]
     video_summary: DashboardVideoSummary
+    recall_summary: DashboardRecallSummary
     subjects: list[DashboardSubject]
     continue_video_subject_id: UUID | None

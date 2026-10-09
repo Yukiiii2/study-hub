@@ -86,6 +86,25 @@ Use completed attempts for score aggregates unless documented otherwise.
 
 ## Flashcard metrics
 
+Phase 9 stores canonical server review history and versioned current card state.
+Again/Hard/Good/Easy are self-reported recall quality, not objective correctness or
+readiness. Each accepted due-card review advances exactly once; immutable history
+captures front/back, prior and next interval and server timestamps. Card edits or
+archival preserve history. Exact request retries never inflate review counts.
+
+Due counts include active cards only: overdue before the profile local-day start,
+due_today from that start through now, upcoming after now. Cards later today are
+not yet reviewable. Dashboard exposes overdue/due_today only, excluding future
+cards; these are real queue counts, not analytics or a retention estimate.
+Scheduler `recall-v1` is documented in DATABASE.md and the Phase 9 contract.
+No workbook R1–R5 history, guessed ratings, source dates or topic readiness is copied.
+Browser session recovery stores only owner-scoped card/request IDs, revision and
+rating for an unconfirmed review. It stores no card text or credentials, retrieves
+the owned card through FastAPI, and requires explicit retry rather than automatic
+submission. Server confirmation clears this metadata.
+
+Future aggregate candidates:
+
 - cards due
 - cards overdue
 - reviews completed

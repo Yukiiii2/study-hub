@@ -34,6 +34,7 @@ const { DashboardView } = load(path.join(src, "features/dashboard/dashboard-view
 const data = {
   date: "2026-10-07", timezone: "Asia/Manila", generated_at: "2026-10-07T00:00:00Z",
   today_events: [], upcoming_tasks: [], continue_video_subject_id: "afar-id",
+  recall_summary: { overdue: 2, due_today: 3 },
   video_summary: { total_videos: 6, completed_videos: 3, remaining_videos: 3, total_duration_seconds: 210,
     completed_duration_seconds: 100, remaining_duration_seconds: 110, unknown_duration_videos: 1 },
   subjects: [{ id: "far-id", code: "FAR", name: "Financial Accounting and Reporting", display_order: 1,
@@ -48,6 +49,8 @@ const empty = render();
 assert(empty.includes("No study events today") && empty.includes("No pending tasks"));
 assert(empty.indexOf('id="dashboard-today"') < empty.indexOf('id="dashboard-tasks"'));
 assert(empty.indexOf('id="dashboard-tasks"') < empty.indexOf('id="dashboard-videos"'));
+assert(empty.indexOf('id="dashboard-tasks"') < empty.indexOf('id="dashboard-recall"'));
+assert(empty.includes('href="/recall"') && empty.includes('2 overdue') && empty.includes('3 due today'));
 for (const id of ["far-id", "afar-id"]) {
   assert(empty.includes(`href="/subjects/${id}"`));
   assert(empty.includes(`href="/subjects/${id}/videos"`));

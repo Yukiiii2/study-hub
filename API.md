@@ -186,24 +186,42 @@ keys; the taking flow never receives them until its attempt is completed.
 
 ## Flashcards
 
-- `GET /api/flashcard-decks`
-- `POST /api/flashcard-decks`
-- `GET /api/flashcard-decks/{deck_id}/cards`
-- `POST /api/flashcards`
-- `PATCH /api/flashcards/{card_id}`
-- `DELETE /api/flashcards/{card_id}`
-- `GET /api/flashcards/due`
-- `POST /api/flashcards/{card_id}/review`
+Implemented Phase 9; all requests authenticate verified Supabase identity. Missing
+or foreign records return 404, stale/nonactive/not-due/conflicting actions 409,
+validation 422 and dependency failures sanitized 503. Ownership, review dates and
+intervals cannot be client inputs. Create returns 201, read/patch/review 200,
+delete 204. Card/deck/review metadata never returns owner UUIDs.
 
-Candidate review payload:
+| Method | Route | Behavior |
+| --- | --- | --- |
+| GET/POST | `/api/flashcard-decks` | Private deck list/create |
+| GET/PATCH/DELETE | `/api/flashcard-decks/{id}` | Read/edit/archive; archival detaches cards, preserving schedules/history |
+| GET/POST | `/api/flashcards` | Private filtered card list/create |
+| GET/PATCH/DELETE | `/api/flashcards/{id}` | Read/edit/archive without deleting review history |
+| GET | `/api/flashcards/due` | Active due/overdue/today/upcoming queue and real counts; optional subject/deck |
+| POST | `/api/flashcards/{id}/review` | Atomic server scheduling and immutable review |
+| GET | `/api/flashcards/{id}/reviews` | Paginated private history, newest first |
 
-```json
-{
-  "rating": "good"
-}
-```
+Lists use `{cards|decks|reviews,total}`, default limit50/max100 and offset0.
+Card filters: subject_id/topic_id/resource_id/deck_id/status/q; default active,
+status=all includes suspended/archived. Deck filters: subject_id/q; archive excluded.
+Card front/back are required, with optional deck/subject/topic/resource/source_page,
+notes and status; patches are partial, while required text/status cannot be null.
+Subject-specific deck and topic/subject associations must match; sources must be own.
 
-Backend owns next-review calculation.
+Review body: `{rating:again|hard|good|easy,expected_revision:int,request_id:UUID}`.
+Returns one Review with server timestamps, prior/next interval, next_review_at,
+algorithm_version and reviewed front/back snapshots. Exact retry returns that same
+review; mismatched ID reuse or stale revision rejects without another history row.
+Future cards cannot be reviewed early. Dates/intervals are backend-owned.
+
+Queue response adds summary `{overdue,due_today,upcoming}`, timezone and as_of.
+mode=due(default)/overdue/today/upcoming; earliest next_review_at/id first. Overdue
+is before the profile local-day start; due_today runs from day start through now;
+upcoming is strictly later than now, including cards later today. No read-time writes.
+Dashboard now adds `recall_summary:{overdue,due_today}` using the same profile-day
+and server as_of; no analytics endpoint is added. Exact bounds/fields are in
+[Phase 9](docs/phase-9-flashcards.md).
 
 ## Assessments
 

@@ -56,6 +56,15 @@ def pending_tasks(connection, user_id: UUID):
     """), {"user_id": user_id}).mappings()]
 
 
+def recall_counts(connection, user_id: UUID, start, now):
+    return dict(connection.execute(text("""
+        SELECT count(*) FILTER (WHERE next_review_at < :start) AS overdue,
+               count(*) FILTER (WHERE next_review_at >= :start) AS due_today
+        FROM public.flashcards
+        WHERE user_id = :user_id AND status = 'active' AND next_review_at <= :now
+    """), {"user_id": user_id, "start": start, "now": now}).mappings().one())
+
+
 def curriculum_labels(connection, records):
     def labels(table, field, ids):
         if not ids:

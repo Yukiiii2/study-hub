@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 8 - Quiz engine and question bank**, following the user-directed phase order. Sign-in, curriculum, private video progress, owner-scoped plans/sessions, private resources and quizzes use the configured Supabase project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 9 - Flashcards and spaced repetition**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes and flashcard recall use the configured Supabase project.
 
 ## Repository and architecture
 
@@ -211,9 +211,9 @@ Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.m
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
-The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library and Quizzes are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
+The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library, Quizzes, Flashcards and Recall are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic domain imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Resource Library (Phase 7)
 
@@ -251,7 +251,7 @@ change completed results. Archive keeps history instead of deleting it.
 FastAPI owns grading and access control. Taking responses hide answer keys until
 submission; the author's Question Bank intentionally exposes their own keys.
 Multi-select uses exact-set grading, no partial credit. No generated questions,
-PDF-to-quiz conversion, flashcards, assessments or advanced analytics.
+PDF-to-quiz conversion, assessments or advanced analytics. Flashcards are introduced below.
 
 Apply additive `0006_quizzes` with `python -m alembic upgrade head` from backend.
 No new credentials/dependencies. CSV uses `data/templates/questions.csv`, a <=1 MiB,
@@ -264,6 +264,36 @@ Focused live validation from root:
 It creates only temporary Auth accounts, a synthetic resource and synthetic
 questions/quizzes, verifies persistence/grading/isolation/import reruns, then
 cleans up its own data. Secrets and question/file content are not printed.
+
+## Flashcards and Recall (Phase 9)
+
+`/flashcards` manages private decks/cards, editable subject/topic/source associations,
+search, suspension/reactivation, archive and review history. `/recall` shows real
+due/overdue/upcoming counts and a one-card review: reveal the answer, then choose
+Again, Hard, Good or Easy. Upcoming cards cannot be reviewed early. Submitted quiz
+mistakes have an explicit Create flashcard action with editable prompt/answer; no
+card is saved until the user submits the form.
+
+Apply additive `0007_flashcards` from backend using `python -m alembic upgrade head`.
+No new credentials/dependencies. Schedule `recall-v1` runs on the server: Again due
+in 10 minutes, Hard max(1,ceil(prior*1.2)) days, Good max(1,ceil(prior*2.5)), Easy
+max(4,ceil(prior*3.5)); maximum 365 days. Request IDs and card revisions protect
+retry/concurrent reviews; reload uses persisted state. Delete archives cards and
+keeps history; deck deletion detaches cards without losing their schedule.
+Dashboard adds only active overdue/due-today counts. No retention/readiness metric.
+
+Workbook Recall is analysis-only: from backend run
+`python -m app.services.recall_inspect`. The [safe proposal](data/imports/reports/project-1-recall-proposal.md)
+documents 155 of 156 exact topic references and the unresolved AP title. No source
+R1–R5 history or fabricated card content is transferred. See IMPORTS.md and
+[the exact Phase 9 contract](docs/phase-9-flashcards.md).
+
+Focused live validation from root:
+`backend/.venv/Scripts/python.exe scripts/verify_flashcards.py --run`.
+It creates temporary synthetic accounts/cards/quizzes/resources, checks authenticated
+CRUD, due scheduling, retry concurrency and RLS, then cleans up its own fixtures.
+Secrets and file/card contents are not printed. AI/PDF-generated cards, flashcard
+CSV import, assessments, timers and advanced analytics remain deferred.
 
 ## Git and deployment
 

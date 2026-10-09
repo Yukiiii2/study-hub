@@ -62,6 +62,7 @@ class DashboardDataChecks(unittest.TestCase):
              patch("app.repositories.dashboard.subject_counts", return_value=subject_rows()), \
              patch("app.repositories.planner.event_range", return_value=([recurring_event()], [])), \
              patch("app.repositories.dashboard.pending_tasks", return_value=[]), \
+             patch("app.repositories.dashboard.recall_counts", return_value={"overdue": 0, "due_today": 0}), \
              patch("app.repositories.dashboard.curriculum_labels", return_value=({FAR: "FAR"}, {TOPIC: "Real source topic"})):
             data = get_dashboard(USER, now=NOW)
         self.assertEqual(data.video_summary.total_videos, 6)
@@ -87,6 +88,7 @@ class DashboardDataChecks(unittest.TestCase):
              patch("app.repositories.dashboard.subject_counts", return_value=[]), \
              patch("app.repositories.planner.event_range", return_value=([], [])), \
              patch("app.repositories.dashboard.pending_tasks", return_value=[]), \
+             patch("app.repositories.dashboard.recall_counts", return_value={"overdue": 0, "due_today": 0}), \
              patch("app.repositories.dashboard.curriculum_labels", return_value=({}, {})):
             data = get_dashboard(USER, now=NOW)
         self.assertEqual(data.today_events, [])

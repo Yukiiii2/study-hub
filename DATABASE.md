@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. Phase 6 adds owner-scoped planning and actual sessions. Phase 7 adds private resources; Phase 8 adds private questions, quizzes and attempts. Later domains below remain planned.
+Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. Phase 6 adds owner-scoped planning and actual sessions. Phase 7 adds private resources; Phase 8 adds private questions, quizzes and attempts. Phase 9 adds private flashcards, decks and review history. Later domains below remain planned.
 
 ## Implemented Phase 2 foundation
 
@@ -359,26 +359,46 @@ server. No per-question timing or advanced quiz metrics are implemented.
 
 ## Flashcards and recall
 
+Implemented Phase 9 by additive `0007_flashcards`. All three tables have required
+profile ownership, composite owner relationships, owner SELECT RLS and no browser
+mutation grants. FastAPI validates active curriculum and own deck/resource/page.
+Current interval, next review and revision live on the card. New active cards are
+due immediately; suspended/archived cards are excluded. Content/association/status
+edits increment revision without resetting the schedule. Resource deletion detaches
+current resource/page and invalidates stale review revisions.
+
+DELETE archives cards, preserving review history. Deck deletion archives the deck
+and detaches cards transactionally without changing their schedules/history.
+Subject-specific decks require matching card subjects; subject changes reject
+conflicting attached cards. No existing data is truncated or replaced.
+
 ### flashcard_decks
 
 - id
 - user_id
 - subject_id nullable
-- topic_id nullable
 - title
+- description nullable
+- is_archived
 - created_at
 - updated_at
 
 ### flashcards
 
 - id
-- deck_id
+- user_id
+- deck_id nullable
+- subject_id nullable
 - resource_id nullable
 - topic_id nullable
 - front
 - back
+- notes nullable
 - source_page nullable
-- origin
+- status (active/suspended/archived)
+- interval_days
+- next_review_at
+- review_revision
 - created_at
 - updated_at
 
@@ -387,20 +407,33 @@ server. No per-question timing or advanced quiz metrics are implemented.
 - id
 - user_id
 - flashcard_id
+- request_id
+- previous_revision
 - rating
 - reviewed_at
-- next_review_at nullable
-- interval metadata nullable
-- algorithm_metadata jsonb nullable
+- previous_interval_days
+- next_interval_days
+- next_review_at
+- algorithm_version
+- front_snapshot
+- back_snapshot
+- created_at
 
 Ratings:
 
-- forgot
+- again
 - hard
 - good
 - easy
 
-Do not finalize the spaced-repetition algorithm until explicitly specified.
+Scheduling v1: Again resets to 0 days and is due in 10 minutes. Hard uses
+max(1,ceil(previous*1.2)) days; Good max(1,ceil(previous*2.5)); Easy
+max(4,ceil(previous*3.5)). Day intervals cap at 365 and use aware UTC server time.
+First Hard/Good/Easy intervals are 1/1/4 days. No ease factor or retention score.
+Reviews lock the card, check expected revision and due time, insert immutable
+history/snapshots and advance state atomically. Unique owner/request ID and
+card/previous revision prevent double scheduling; identical retries reuse history.
+See [Phase 9](docs/phase-9-flashcards.md) for bounds and due-date semantics.
 
 ## Assessments
 

@@ -146,18 +146,20 @@ import; owner RLS and restricted grading-column grants. Shared auth stays intact
 No flashcards, spaced repetition, AI/PDF-to-quiz generation, assessments or
 advanced analytics.
 
-## Phase 9 - Not started
+## Phase 9 - Flashcards and recall
+
+The explicit user phase order moves flashcards and recall into Phase 9.
+Implemented: private decks/cards with curriculum/source associations, editing and
+archive; active due/overdue/upcoming queues; reveal/rate flow; immutable history;
+versioned backend scheduling and revision/request retry protection; manual editable
+quiz-mistake conversion; real Dashboard due counts. Workbook recall stays report-only,
+with 155/156 exact topic matches and no imported repetition history or invented cards.
+
+## Phase 10 - Not started
 
 Await the user's next phase instruction. The remaining original roadmap below is
-future scope, not authorization to begin it.
-
-## Phase 10 — Flashcards and recall
-
-- decks/cards
-- review history
-- due queue
-- spaced-repetition algorithm after explicit algorithm decision
-- cards from quiz mistakes
+future scope, not authorization to begin it. AI cards, flashcard CSV import,
+assessments, advanced analytics and focus timers are not part of Phase 9.
 
 ## Phase 11 — Assessments
 

@@ -11,6 +11,7 @@ export type DashboardData = {
   today_events: (StudyEvent & CurriculumContext)[];
   upcoming_tasks: (StudyTask & CurriculumContext)[];
   video_summary: SubjectVideos["summary"] & { remaining_videos: number };
+  recall_summary: { overdue: number; due_today: number };
   subjects: (Subject & { topic_count: number; video_count: number; completed_video_count: number })[];
   continue_video_subject_id: string | null;
 };

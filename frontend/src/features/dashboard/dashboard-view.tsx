@@ -56,6 +56,12 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
           </li>)}</ul>}
       </section>
 
+      <section className="dashboard-section dashboard-recall" aria-labelledby="dashboard-recall">
+        <header className="dashboard-section-heading"><h2 id="dashboard-recall">Recall</h2><Link href="/recall">Review cards</Link></header>
+        <p>{data.recall_summary.overdue} overdue · {data.recall_summary.due_today} due today</p>
+        <p className="dashboard-section-note">Active cards ready now, in {data.timezone}. Future reviews are excluded.</p>
+      </section>
+
       <section className="dashboard-section dashboard-videos" aria-labelledby="dashboard-videos">
         <header className="dashboard-section-heading"><h2 id="dashboard-videos">Video progress</h2>{videoPath && <Link href={videoPath}>Videos</Link>}</header>
         <dl className="dashboard-video-counts">
