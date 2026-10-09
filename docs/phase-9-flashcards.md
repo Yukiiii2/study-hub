@@ -103,7 +103,7 @@ on the existing dashboard response with a compact section after Today/tasks.
 - [x] Integration: apply additive migration, two synthetic users, CRUD/association/
   ownership/due/review/grants/concurrent retry/quiz manual mapping checks; cleanup
   only created identities and synthetic resources. Route smoke checks.
-- [ ] Review relevant docs/diff, stage code/docs/safe report only, no environment,
+- [x] Review relevant docs/diff, stage code/docs/safe report only, no environment,
   source workbook/uploads/temp fixtures/user next-env edit. One commit
   `feat: add flashcards and spaced repetition`, push main, stop before Phase 10.
 
