@@ -160,7 +160,8 @@ def create_session(user_id, body):
         if repo.active_session(connection, user_id):
             raise PlannerError("Stop your active session before starting another.", 409)
         data = {"study_event_id": body.study_event_id, "occurrence_id": None,
-                "subject_id": body.subject_id, "topic_id": body.topic_id, "notes": body.notes}
+                "subject_id": body.subject_id, "topic_id": body.topic_id,
+                "activity_type": body.activity_type, "notes": body.notes}
         if body.study_event_id:
             event = required(repo.get_record(connection, "events", user_id, body.study_event_id, lock=True), "Event")
             context = event

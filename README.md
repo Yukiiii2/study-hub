@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 10 - Assessments**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes, flashcard recall and private assessments use the configured Supabase project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 11 - Analytics and Focus Timer**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes, flashcard recall, assessments and study analytics use the configured Supabase project.
 
 ## Repository and architecture
 
@@ -213,7 +213,7 @@ Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest 
 
 The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library, Quizzes, Flashcards, Recall and Assessments are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers and AI. Charts use recorded study sessions only.
 
 ## Resource Library (Phase 7)
 
@@ -293,7 +293,7 @@ Focused live validation from root:
 It creates temporary synthetic accounts/cards/quizzes/resources, checks authenticated
 CRUD, due scheduling, retry concurrency and RLS, then cleans up its own fixtures.
 Secrets and file/card contents are not printed. AI/PDF-generated cards, flashcard
-CSV import, timers and advanced analytics remain deferred; assessments are introduced below.
+CSV import and advanced analytics remain deferred; assessments and Focus are introduced below.
 
 ## Assessments (Phase 10)
 
@@ -314,7 +314,34 @@ Focused validation: from backend run
 `python -m unittest tests.test_assessments tests.test_assessment_import`.
 From root, `backend/.venv/Scripts/python.exe scripts/verify_assessments.py --run`
 uses temporary synthetic accounts/progress and
-cleans up its own data. AI, advanced analytics and Phase 11 remain deferred.
+cleans up its own data. AI and advanced analytics remain deferred.
+
+## Analytics and Focus Timer (Phase 11)
+
+`/focus` starts and finishes the existing persistent study sessions, with subject,
+optional topic, activity and optional calendar event context. Reload restores the
+active session. One active session per user is enforced in PostgreSQL; FastAPI
+owns final timestamps/duration and repeated finish is safe. Subject/topic links
+prefill Focus without automatically starting. Pause is deferred.
+
+`/analytics` shows 7/30/90-day or bounded custom profile-local periods: completed
+study seconds, session count, active days, average/longest, daily chart, subject
+and activity breakdowns, planned versus actual, heatmap and paginated history.
+Only finished, owner-scoped data contributes; open sessions and video lecture
+lengths do not inflate actual time. Calendar recurrence edits/deletes are respected.
+Empty days mean no recorded activity. No productivity/adherence/readiness score
+is invented. Existing history uses general activity; no classification is guessed.
+
+Apply additive `0009_session_activity` with `python -m alembic upgrade head` from
+backend. No dependencies, environment values or external services are added.
+See [the Phase 11 contract](docs/phase-11-analytics-focus.md), [API.md](API.md),
+[DATABASE.md](DATABASE.md) and [DATA_AND_TELEMETRY.md](DATA_AND_TELEMETRY.md).
+Focused checks from backend: `python -m unittest tests.test_focus tests.test_analytics`.
+From frontend: `node tests/study-time.cjs` and `npm.cmd run build`.
+Explicit live verification from root:
+`backend/.venv/Scripts/python.exe scripts/verify_analytics_focus.py --run`.
+It creates temporary synthetic accounts/records and cleans only those fixtures.
+No private source files, credentials or test payloads are printed or committed.
 
 ## Git and deployment
 

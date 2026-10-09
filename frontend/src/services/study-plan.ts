@@ -7,7 +7,9 @@ export type EventCreate = { subject_id: string | null; topic_id: string | null; 
 export type StudyEvent = EventCreate & { id: string; created_at: string; updated_at: string; occurrence_date?: string | null; is_recurring?: boolean; occurrence_id?: string | null };
 export type TaskInput = { subject_id: string | null; topic_id: string | null; title: string; task_type: EventType; estimated_minutes: number | null; due_at: string | null; status: "pending" | "completed" | "cancelled" };
 export type StudyTask = Omit<TaskInput, "status"> & { id: string; status: TaskInput["status"] | "scheduled"; scheduled_event_id: string | null; created_at: string; updated_at: string };
-export type StudySession = { id: string; study_event_id: string | null; occurrence_id: string | null; subject_id: string | null; topic_id: string | null; started_at: string; ended_at: string | null; duration_seconds: number | null; notes: string | null; created_at: string };
+export const activityTypes = ["lecture", "reading", "practice", "recall", "quiz", "general"] as const;
+export type ActivityType = typeof activityTypes[number];
+export type StudySession = { id: string; study_event_id: string | null; occurrence_id: string | null; subject_id: string | null; topic_id: string | null; activity_type: ActivityType; started_at: string; ended_at: string | null; duration_seconds: number | null; notes: string | null; created_at: string };
 export type PlannerContext = { timezone: string; active_session: StudySession | null };
 const base = "/api/study-events";
 const eventPath = (event: StudyEvent, series = false) => `${base}/${encodeURIComponent(event.id)}${!series && event.occurrence_date ? `/occurrences/${event.occurrence_date}` : ""}`;
@@ -22,7 +24,10 @@ export const createTask = (body: TaskInput) => authenticatedPost<StudyTask>("/ap
 export const updateTask = (id: string, body: Partial<TaskInput>) => authenticatedPatch<StudyTask>(`/api/study-tasks/${encodeURIComponent(id)}`, body);
 export const deleteTask = (id: string) => authenticatedDelete(`/api/study-tasks/${encodeURIComponent(id)}`);
 export const scheduleTask = (id: string, body: EventCreate) => authenticatedPost<StudyEvent>(`/api/study-tasks/${encodeURIComponent(id)}/schedule`, body);
-export const startSession = (event?: StudyEvent) => authenticatedPost<StudySession>("/api/study-sessions", event ? { study_event_id: event.id, ...(event.occurrence_date ? { occurrence_date: event.occurrence_date } : {}) } : {});
+export function eventActivity(event: StudyEvent): ActivityType {
+  return event.event_type === "drill" ? "practice" : event.event_type === "assessment" ? "general" : event.event_type;
+}
+export const startSession = (event?: StudyEvent) => authenticatedPost<StudySession>("/api/study-sessions", event ? { study_event_id: event.id, activity_type: eventActivity(event), ...(event.occurrence_date ? { occurrence_date: event.occurrence_date } : {}) } : {});
 export const stopSession = (id: string) => authenticatedPatch<StudySession>(`/api/study-sessions/${encodeURIComponent(id)}`, { action: "stop" });
 export function plannerError(error: unknown): string {
   if (error instanceof ApiError) {

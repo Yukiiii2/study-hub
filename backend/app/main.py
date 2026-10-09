@@ -13,6 +13,8 @@ from app.api.quizzes import router as quizzes_router
 from app.api.quiz_import import router as question_import_router, QuestionImportBodyLimit
 from app.api.flashcards import router as flashcards_router
 from app.api.assessments import router as assessments_router
+from app.api.focus import router as focus_router
+from app.api.analytics import router as analytics_router
 from app.api.resource_body_limit import ResourceUploadBodyLimit
 from app.core.config import get_settings
 
@@ -40,3 +42,5 @@ app.include_router(quizzes_router)
 app.include_router(question_import_router)
 app.include_router(flashcards_router)
 app.include_router(assessments_router)
+app.include_router(focus_router)
+app.include_router(analytics_router)

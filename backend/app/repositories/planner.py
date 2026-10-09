@@ -8,14 +8,14 @@ from app.db.connection import get_engine
 
 EVENT_FIELDS = "id, subject_id, topic_id, title, event_type, start_at, end_at, timezone, status, recurrence_rule, notes, created_at, updated_at"
 TASK_FIELDS = "id, subject_id, topic_id, title, task_type, estimated_minutes, due_at, status, scheduled_event_id, created_at, updated_at"
-SESSION_FIELDS = "id, study_event_id, occurrence_id, subject_id, topic_id, started_at, ended_at, duration_seconds, notes, created_at"
+SESSION_FIELDS = "id, study_event_id, occurrence_id, subject_id, topic_id, activity_type, started_at, ended_at, duration_seconds, notes, created_at"
 SNAPSHOT_FIELDS = "id, study_event_id, occurrence_date, subject_id, topic_id, title, event_type, start_at, end_at, status, notes, is_deleted, created_at, updated_at"
 TABLES = {"events": ("study_events", EVENT_FIELDS), "tasks": ("study_tasks", TASK_FIELDS),
           "sessions": ("study_sessions", SESSION_FIELDS), "occurrences": ("study_event_occurrences", SNAPSHOT_FIELDS)}
 WRITABLE = {
     "events": {"subject_id", "topic_id", "title", "event_type", "start_at", "end_at", "timezone", "status", "recurrence_rule", "notes"},
     "tasks": {"subject_id", "topic_id", "title", "task_type", "estimated_minutes", "due_at", "status", "scheduled_event_id"},
-    "sessions": {"study_event_id", "occurrence_id", "subject_id", "topic_id", "notes"},
+    "sessions": {"study_event_id", "occurrence_id", "subject_id", "topic_id", "activity_type", "notes"},
     "occurrences": {"study_event_id", "occurrence_date", "subject_id", "topic_id", "title", "event_type", "start_at", "end_at", "status", "notes", "is_deleted"},
 }
 

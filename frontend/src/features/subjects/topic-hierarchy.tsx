@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import type { Topic } from "@/services/subjects";
 import { flattenTopics } from "./hierarchy";
 
@@ -8,6 +9,7 @@ export function TopicHierarchy({ topics }: { topics: Topic[] }) {
       <span className="sr-only">{depth === 0 ? "Top-level topic. " : `Subtopic, level ${depth + 1}. `}</span>
       <div className="topic-title">{topic.code && <span className="topic-code">{topic.code}</span>}<h3>{topic.title}</h3></div>
       {topic.description && <p>{topic.description}</p>}
+      <Link className="topic-focus-link" href={`/focus?${new URLSearchParams({ subject_id: topic.subject_id, topic_id: topic.id })}`} aria-label={`Start focus session for ${topic.title}`}>Focus on this topic</Link>
     </li>)}
   </ul>;
 }

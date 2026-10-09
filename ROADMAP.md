@@ -164,12 +164,17 @@ mapping, transactional insert-only import and zero-insert reruns; missing dates,
 unmatched labels and checkbox/formula results remain unimported and documented.
 No AI, composite readiness formula, advanced analytics or automatic calendar writes.
 
-## Phase 11 - Not started
+## Phase 11 - Analytics and Focus Timer
 
-Await the user's next instruction. Remaining roadmap entries are future scope,
-not authorization to begin them.
+The explicit user phase order brings actual-time analytics into Phase 11.
+Implemented: Focus start/finish/restoration through existing persistent sessions,
+single-active enforcement and server-derived duration; explicit activity types;
+profile-local 7/30/90-day and bounded custom ranges; daily recorded activity,
+subject/activity breakdowns, transparent planned versus actual, heatmap and
+paginated session history. Existing shared auth/session UX is preserved.
+Pause, productivity/readiness scores and later product phases remain deferred.
 
-## Phase 12 — Analytics
+## Phase 12 — Future scope (not started)
 
 - study time
 - planned vs actual

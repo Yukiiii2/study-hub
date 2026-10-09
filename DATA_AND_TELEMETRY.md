@@ -1,5 +1,26 @@
 # DATA_AND_TELEMETRY.md
 
+## Phase 11 actual-time analytics
+
+Focus reuses persisted planner sessions. The backend owns timestamps and final
+duration; the browser clock only displays elapsed time. An activity type is
+explicitly selected for new sessions. Existing history stays general rather
+than being classified from unrelated completion data. Pause is deferred.
+
+Only completed sessions contribute to analytics. Selected profile-local dates
+become half-open UTC boundaries, and overlapping durations are clipped and split
+at local midnights. Integer seconds reconcile with the persisted floored duration.
+Session count counts overlapping completed sessions once; averages and longest
+use their duration inside the selected range. Empty days mean zero *recorded*
+completed study time. Active/open sessions do not inflate historical metrics.
+
+Planned totals use real expanded calendar occurrences and their edits/deletes,
+excluding cancelled events but including skipped plans. Task estimates and video
+lecture durations do not enter actual-time totals. Planned/actual intervals are
+additive, independent totals, not an adherence score. No weighted readiness,
+productivity score, streak rule or external telemetry is introduced. Detailed
+rules: [Phase 11](docs/phase-11-analytics-focus.md).
+
 ## Purpose
 
 Defines study metrics and derived data without overbuilding analytics during foundation work.

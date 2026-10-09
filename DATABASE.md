@@ -192,6 +192,15 @@ Actual study activity:
 
 Planned duration belongs to events/tasks. Actual duration belongs to sessions.
 
+Phase 11 adds only `activity_type` to sessions through additive revision
+`0009_session_activity`: lecture, reading, practice, recall, quiz or general.
+Existing sessions remain general; historical activity is not inferred. The
+existing owner/start index and single-active partial unique index are reused.
+No timer tables, pause state, analytics caches or materialized views are added.
+Completed-time analytics are read-only, owner-scoped and profile-timezone aware;
+active sessions remain excluded until stopped. See
+[the calculation contract](docs/phase-11-analytics-focus.md).
+
 All four planner tables enable RLS, revoke anonymous/public privileges, and grant authenticated owner-scoped SELECT only. Browser mutations are deliberately denied, matching video tracking: FastAPI handles status, relationship and timestamp semantics, always filtering by the verified UUID even with privileged database credentials. Event/task/occurrence updates reuse the existing updated-at trigger. No source plans or sample activity are seeded.
 
 ## Resources

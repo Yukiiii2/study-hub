@@ -26,6 +26,7 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
     </header>
     <nav className="dashboard-actions" aria-label="Quick actions">
       <Link className="primary-button" href="/study-plan">Open Study Plan</Link>
+      <Link className="secondary-button" href="/focus">Open Focus</Link>
       <Link className="secondary-button" href="/subjects">Browse Subjects</Link>
       {videoPath && <Link className="secondary-button" href={videoPath}>{data?.continue_video_subject_id ? "Continue Videos" : "Browse Videos"}</Link>}
     </nav>

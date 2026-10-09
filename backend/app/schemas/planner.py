@@ -8,6 +8,7 @@ EventType = Literal["lecture", "reading", "drill", "recall", "quiz", "assessment
 EventStatus = Literal["scheduled", "completed", "skipped", "cancelled"]
 TaskStatus = Literal["pending", "scheduled", "completed", "cancelled"]
 EditableTaskStatus = Literal["pending", "completed", "cancelled"]
+ActivityType = Literal["lecture", "reading", "practice", "recall", "quiz", "general"]
 
 
 class Request(BaseModel):
@@ -133,6 +134,7 @@ class SessionCreate(Request):
     occurrence_date: date | None = None
     subject_id: UUID | None = None
     topic_id: UUID | None = None
+    activity_type: ActivityType = "general"
     notes: str | None = Field(default=None, max_length=10000)
 
 
@@ -153,6 +155,7 @@ class SessionResponse(BaseModel):
     occurrence_id: UUID | None
     subject_id: UUID | None
     topic_id: UUID | None
+    activity_type: ActivityType
     started_at: datetime
     ended_at: datetime | None
     duration_seconds: int | None

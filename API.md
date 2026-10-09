@@ -1,5 +1,28 @@
 # API.md
 
+## Focus and analytics (Phase 11)
+
+All routes verify the bearer user and scope reads to that UUID. No user_id,
+client timestamps or duration are accepted by session start/stop.
+
+- GET `/api/focus`: profile timezone, server clock, persisted active session,
+  today's completed seconds/session count and ten recent completed sessions.
+- Existing POST `/api/study-sessions` accepts optional `activity_type` (default
+  general): lecture, reading, practice, recall, quiz or general. Existing PATCH
+  `/api/study-sessions/{id}` with `{action:"stop"}` keeps authoritative duration
+  and retry-safe completion. Conflicting simultaneous starts return 409.
+- GET `/api/analytics/summary?period=7|30|90`: metrics, daily recorded duration,
+  subject/activity breakdowns and independent planned/actual totals.
+- GET `/api/analytics/sessions?period=7|30|90&limit=20&offset=0`: completed history,
+  labels and pagination; maximum limit 100. Both analytics routes optionally
+  accept paired start_date/end_date (inclusive local dates, maximum 90 days,
+  no future end date). Invalid ranges return 422; missing auth 401; database
+  failures are sanitized 503.
+
+See [Phase 11](docs/phase-11-analytics-focus.md) for DTOs and exact clipping,
+midnight, recurrence and counting rules. No frontend-derived analytics, inferred
+activity classification or composite performance score is used.
+
 ## Purpose
 
 Initial REST contract direction between Next.js and FastAPI. Exact schemas are finalized feature-by-feature.
