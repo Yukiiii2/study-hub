@@ -106,6 +106,13 @@ If introduced later, document:
 
 ## Privacy / telemetry
 
+Phase 7 resource metadata (size, page/row count, processing status) describes the
+uploaded source, not learning progress or study activity. Extracted PDF content
+and CSV previews are private and owner-scoped. Processing logs use safe failure
+categories and resource identifiers, never document text, CSV values, filenames,
+signed URLs, tokens or provider exception payloads. No document analytics or AI
+provider transmission is introduced.
+
 Initial project does not require external product analytics.
 
 Prefer first-party study analytics.

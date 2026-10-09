@@ -70,7 +70,7 @@ Set `DATABASE_URL` using the Connect panel's direct or session-pooler connection
 
 Apply reviewed migrations from `backend/` with the virtual environment's `python -m alembic upgrade head`. This also seeds the seven CPA subjects and creates/backfills profiles. Use a privileged migration connection with access to the Auth schema and role grants. Runtime startup does not migrate; migration failure must be resolved before enabling database-backed endpoints. This is an initial additive schema migration, not a reset. Downgrade commands that would drop foundation data are blocked.
 
-Configure the frontend API URL and Supabase public values, and the backend Supabase/database values and exact CORS origins independently in their Vercel projects. Redeploy the frontend after public environment changes. Validate sign-in, reload/session persistence, `/api/auth/me`, the Dashboard's subject setup check, and sign-out after migrations. No Storage or AI configuration is needed.
+Configure the frontend API URL and Supabase public values, and the backend Supabase/database values and exact CORS origins independently in their Vercel projects. Redeploy the frontend after public environment changes. Validate sign-in, reload/session persistence, `/api/auth/me`, subject browsing, and sign-out after migrations. Phase 2 Auth checks do not require Storage; Phase 7 Library setup is documented below. AI configuration remains deferred.
 
 Expected:
 
@@ -117,6 +117,34 @@ Avoid unrestricted wildcard CORS with authenticated production requests unless e
 Store uploaded files in Supabase Storage. Store metadata/reference in PostgreSQL.
 
 Do not store large PDF binary blobs in normal relational columns.
+
+### Phase 7 setup
+
+Apply reviewed revision `0005_resources` using the configured migration connection.
+Then, from `backend/`, run `python -m app.services.resource_storage` to create or verify the
+private `study-resources` bucket. Existing incompatible/public bucket configuration
+must fail closed; do not silently make uploaded files public. Storage policies are
+version-controlled in the migration: owner-path plus matching own metadata SELECT,
+no browser mutation policies. The backend uses the existing SUPABASE_URL and
+SUPABASE_SECRET_KEY with HTTPX; no frontend secret or new credentials are needed.
+
+Use current keys in the apikey header; a secret key is not a bearer JWT. Normal
+resource requests still authenticate using the user's Supabase bearer token.
+Download links expire after 120 seconds and must not be logged or persisted by
+the browser. A recipient holding a signed link can use it until expiry; deletion
+of the underlying object removes availability.
+
+Uploads are limited to 4 MiB (4,194,304 bytes), below Vercel's 4.5 MB request-body
+ceiling with room for multipart fields. The API separately bounds the multipart
+envelope. This intentionally supports smaller documents than a 25/50 MB local
+limit that would fail on the target runtime. See [Vercel limits](https://vercel.com/docs/functions/limitations).
+PDF extracted output and content responses must also remain bounded; content is
+paginated. Synchronous parsing stays in an isolated service; large/long-running
+documents require a separately approved worker/upload architecture later.
+
+No deployment is performed by Phase 7. If bucket creation or policy migration
+permissions are unavailable, configure this private bucket and apply the reviewed
+policies with project-admin access; do not broaden security to bypass the blocker.
 
 ## Initial production workflow
 

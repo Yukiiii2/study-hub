@@ -23,13 +23,14 @@ function fixture(options = {}) {
   };
   const output = { exports: {} };
   vm.runInNewContext(code, {
-    module: output, exports: output.exports, Error, Promise,
+    module: output, exports: output.exports, Error, Promise, FormData,
     require: (name) => name.includes("supabase") ? { getSupabaseBrowserClient: () => ({ auth }) } : { config: { apiUrl: "http://example.test" } },
     fetch: async (_url, init) => {
       requests++;
+      options.inspect?.(init);
       if (options.switchAccount) session = { access_token: "other-token", user: { id: "user-b" } };
       const rejected = options.rejectAll || init.headers.Authorization === "Bearer old-token";
-      return { status: rejected ? 401 : 200, ok: !rejected, json: async () => ({ id: "user-a" }) };
+      return { status: rejected ? 401 : options.failureStatus ?? 200, ok: !rejected && !options.failureStatus, json: async () => options.failureStatus ? { detail: options.detail } : { id: "user-a" } };
     },
   });
   return { api: output.exports, counts: () => ({ refreshes, signouts, requests }), current: () => session };
@@ -37,6 +38,24 @@ function fixture(options = {}) {
 let passed = 0;
 async function check(name, run) { await run(); passed++; console.log(`PASS: ${name}`); }
 (async () => {
+  await check("multipart retries preserve the file body and browser boundary", async () => {
+    const body = new FormData(); body.append("title", "Source notes");
+    const bodies = [];
+    const test = fixture({ inspect: (init) => { bodies.push(init.body); assert(!("Content-Type" in init.headers), "Browser must set multipart boundary"); } });
+    await test.api.authenticatedPost("/api/resources/upload", body);
+    assert.equal(bodies.length, 2); assert(bodies.every((sent) => sent === body));
+    assert.deepEqual(test.counts(), { refreshes: 1, signouts: 0, requests: 2 });
+  });
+  await check("JSON requests retain their content type and encoding", async () => {
+    const test = fixture({ inspect: (init) => { assert.equal(init.headers["Content-Type"], "application/json"); assert.equal(init.body, '{"title":"Notes"}'); } });
+    await test.api.authenticatedPost("/api/study-tasks", { title: "Notes" });
+  });
+  await check("resource validation only exposes whitelisted service details", async () => {
+    const safe = fixture({ failureStatus: 422, detail: "Choose an active subject and its matching topic." });
+    await assert.rejects(() => safe.api.authenticatedPost("/api/resources/upload", new FormData()), (error) => error.message === "Choose an active subject and its matching topic.");
+    const unsafe = fixture({ failureStatus: 503, detail: "Secret provider path /private/files" });
+    await assert.rejects(() => unsafe.api.authenticatedGet("/api/resources"), (error) => !error.message.includes("private"));
+  });
   await check("rejected stale token recovers and retries without signing out", async () => {
     const test = fixture();
     const me = await test.api.authenticatedGet("/api/auth/me");

@@ -121,11 +121,32 @@ Response fields: id, nullable study_event_id/occurrence_id/subject_id/topic_id, 
 
 ## Resources
 
-- `GET /api/resources`
-- `POST /api/resources/upload`
-- `GET /api/resources/{resource_id}`
-- `DELETE /api/resources/{resource_id}`
-- optional later: `POST /api/resources/{resource_id}/process`
+Implemented Phase 7; all six endpoints verify Supabase bearer identity. Missing
+or other-user records return 404. Ownership/storage paths are never client inputs.
+Invalid inputs return 422, unsupported type 415, size limit 413, and dependency
+failures sanitized 503. No stack traces, credentials or storage locators are returned.
+
+| Method | Route | Response/behavior |
+| --- | --- | --- |
+| GET | `/api/resources` | `{resources, total}`; optional subject_id/topic_id/resource_type/q filters; limit default50/max100, offset default0; newest first |
+| POST | `/api/resources/upload` | Multipart file/title/subject_id/topic_id; 201 metadata after synchronous processing, including safely failed PDF extraction |
+| GET | `/api/resources/{id}` | Own metadata |
+| DELETE | `/api/resources/{id}` | 204 only after storage and metadata/sections deletion succeeds |
+| GET | `/api/resources/{id}/download` | `{url, expires_in:120}`; download=true by default, false for browser open; transient signed link |
+| GET | `/api/resources/{id}/content` | `{resource, sections, total_sections, headers, rows, row_count}`; PDF offset0/limit10/max20 pages; CSV first20 rows only |
+
+Metadata includes id, nullable subject_id/topic_id/subject_code/topic_title, title,
+original_filename, normalized mime_type, file_size_bytes, resource_type,
+processing_status, nullable page_count/row_count/error_message, created_at/updated_at.
+PDF sections include id, page_number, section_index and content. Download/open is
+available for retained failed PDFs; no extracted content is invented.
+
+Files are limited to 4 MiB, with a bounded multipart envelope, PDF/CSV only.
+Topic requires a valid matching active subject. Extra ownership/path fields are
+rejected. CSV uploads validate before persistence; arbitrary rows never enter
+curriculum, quiz or flashcard tables. List/content reads are paginated/bounded.
+Storage failure during deletion preserves database metadata and reports failure.
+If database commit fails after object removal, retry deletion; no success is claimed.
 
 ## CSV import
 

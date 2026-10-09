@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 6.5 - Dashboard refresh**, following the user-directed phase order. Sign-in, curriculum, private video progress, and owner-scoped plans/sessions use the configured Supabase Auth and PostgreSQL project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 7 - Resource Library and file processing**, following the user-directed phase order. Sign-in, curriculum, private video progress, owner-scoped plans/sessions and private resources use the configured Supabase project.
 
 ## Repository and architecture
 
@@ -24,7 +24,7 @@ Existing specification files remain at the root to preserve their references. Re
 
 The frontend owns presentation, routing, accessibility, and browser interaction. FastAPI owns application APIs, validation, business logic, and future privileged data access. Next.js does not replace the backend. Neither application requires the other to start.
 
-Current stack: Next.js App Router, React, TypeScript, Tailwind CSS, and the official Supabase JavaScript client; Python, FastAPI, Pydantic, pydantic-settings, Uvicorn, HTTPX, SQLAlchemy, Alembic, and Psycopg. Supabase PostgreSQL and Auth are integrated through configuration. Read-only subject and topic browsing is implemented; Storage and later study features remain deferred.
+Current stack: Next.js App Router, React, TypeScript, Tailwind CSS, and the official Supabase JavaScript client; Python, FastAPI, Pydantic, pydantic-settings, Uvicorn, HTTPX, SQLAlchemy, Alembic, Psycopg, pypdf and python-multipart. Supabase PostgreSQL/Auth/Storage are integrated. File metadata and processing remain FastAPI responsibilities.
 
 Frontend source is grouped into `src/app`, `src/components`, `src/features/auth`, `src/features/dashboard`, `src/features/subjects`, `src/lib`, `src/services`, and `src/styles`. Authentication helpers are separate from FastAPI clients. Backend code lives in `app/api`, `app/core`, `app/db`, `app/repositories`, `app/schemas`, and `app/main.py`; migrations live in `backend/migrations`. Additional folders will be added when actual features need them.
 
@@ -211,9 +211,32 @@ Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.m
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
-The dark shell remains intact; Dashboard, Study Plan, Subjects and Videos are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
+The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos and Library are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic source imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, resources/uploads, Storage, PDF/CSV processing, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic domain imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+
+## Resource Library (Phase 7)
+
+Open `/library` to upload and browse private PDF/CSV resources, filter by type or
+subject, search title/filename and open paginated metadata/content detail. Upload
+offers optional title/subject/topic; the topic must belong to the selected subject.
+Files are limited to 4 MiB and checked by type/content. PDFs expose ordered extracted
+page text; CSV exposes headers, total data-row count and the first20 rows only.
+No-text/unreadable PDFs retain originals with an explicit failed status; no OCR.
+Open/download uses short-lived signed links, and deletion is confirmed in the UI.
+
+From `backend/`, install `requirements.txt`, run `python -m alembic upgrade head`,
+then `python -m app.services.resource_storage` to create/verify the private study-resources
+bucket. Existing backend Supabase URL/secret key/database configuration suffices;
+real values stay in ignored env files. See DEPLOYMENT.md for permissions and limits.
+The browser does not directly write resource metadata or Storage objects.
+
+Focused live checks from the root: `backend/.venv/Scripts/python.exe scripts/verify_resources.py --run`.
+This explicitly creates two temporary Auth accounts and synthetic files in memory,
+checks authenticated lifecycle/RLS/Storage isolation, then removes only its own
+verification resources/accounts. No uploaded PDF/CSV fixture, credentials or
+private document content is printed or committed. A future worker is deferred;
+CSV quiz/flashcard imports, AI, embeddings and all Phase 8 features remain deferred.
 
 ## Git and deployment
 

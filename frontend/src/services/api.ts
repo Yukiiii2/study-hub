@@ -28,13 +28,14 @@ async function authenticatedRequest<T>(path: string, method: "GET" | "PATCH" | "
   if (!config.apiUrl) throw new ApiError("The study service is not configured.", 503);
   const auth = getSupabaseBrowserClient().auth;
   const session = await currentSession();
+  const multipart = typeof FormData !== "undefined" && body instanceof FormData;
 
   async function send(token: string) {
     try {
       return await fetch(`${config.apiUrl}${path}`, {
         method,
-        headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        headers: { Authorization: `Bearer ${token}`, ...(body === undefined || multipart ? {} : { "Content-Type": "application/json" }) },
+        body: body === undefined ? undefined : multipart ? body as FormData : JSON.stringify(body),
         cache: "no-store",
         signal,
       });
@@ -78,7 +79,16 @@ async function authenticatedRequest<T>(path: string, method: "GET" | "PATCH" | "
       throw new ApiError("Your session could not be verified. Please sign in again.", 401);
     }
   }
-  if (!response.ok) throw new ApiError("The study service could not complete the request. Try again.", response.status);
+  if (!response.ok) {
+    let message = "The study service could not complete the request. Try again.";
+    if (path === "/api/resources" || path.startsWith("/api/resources/") || path.startsWith("/api/resources?")) {
+      try {
+        const { detail } = await response.json();
+        if (typeof detail === "string" && (safeResourceDetails.has(detail) || safeCsvDetail.test(detail))) message = detail;
+      } catch { /* Unreadable or unrecognized errors use the safe fallback. */ }
+    }
+    throw new ApiError(message, response.status);
+  }
   if (response.status === 204) return undefined as T;
   try {
     return await response.json() as T;
@@ -86,6 +96,18 @@ async function authenticatedRequest<T>(path: string, method: "GET" | "PATCH" | "
     throw new ApiError("The study service returned an unreadable response. Try again.", 502);
   }
 }
+
+const safeResourceDetails = new Set([
+  "Resource not found.", "Files must be 4 MiB or smaller.", "Upload request is too large.",
+  "Only PDF and CSV files with matching file types are supported.", "Invalid upload fields.",
+  "Choose an active subject and its matching topic.", "Resources are unavailable. Try again.",
+  "File storage is unavailable. Try again.",
+  "CSV must contain a header and data rows within the file limit.", "CSV must use UTF-8 encoding.",
+  "CSV contains unsupported control characters.", "CSV requires nonempty headers, at most 100 columns and 200 characters per header.",
+  "CSV headers must be unique.", "CSV exceeds the 100000 data row limit.", "CSV preview exceeds the 200000 character limit.",
+  "CSV must contain at least one data row.", "CSV contains unsupported binary content.",
+]);
+const safeCsvDetail = /^(?:Invalid CSV at row [1-9]\d{0,6}: (?:expected [1-9]\d{0,2} columns\.|a cell exceeds 10000 characters\.)|Invalid CSV quoting or field size at row [1-9]\d{0,6}\.)$/;
 
 function authFailure(error: AuthError): ApiError {
   const invalid = error.status === 400 || error.status === 401 || error.status === 403 || error.status === 422;

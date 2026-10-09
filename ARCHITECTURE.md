@@ -213,9 +213,31 @@ The official Supabase JavaScript client lives in `frontend/src/features/auth/` a
 
 SQLAlchemy and Psycopg provide lazy server-side PostgreSQL access; Alembic owns version-controlled migrations under `backend/migrations/`. A subjects repository separates data access from HTTP handlers. No ORM abstractions are created for unused domains. Application startup never creates tables or runs migrations. `/health` can run with all Supabase settings blank.
 
-Phase 2 implements only profiles, subjects, empty topics, Auth, `/api/auth/me`, and read-only `/api/subjects`. Profile creation uses a Supabase Auth trigger. Storage, imports, and later study features remain unimplemented. See DATABASE.md for the RLS and privileged-backend access model.
+Phase 2 introduced profiles, subjects, empty topics, Auth, `/api/auth/me`, and read-only `/api/subjects`. Profile creation uses a Supabase Auth trigger. Subsequent phases add curriculum imports, progress/planning and the Phase 7 resource boundary below. See DATABASE.md for the RLS and privileged-backend access model.
 
 ## Long-running work
+
+### Phase 7 resource boundary
+
+The Resource Library uses the existing verified bearer identity and SQLAlchemy
+repository convention. FastAPI validates bounded multipart uploads, creates
+owner-scoped metadata, delegates private object operations to an HTTPX Storage
+service, and processes files through isolated PDF/CSV parsers. The browser never
+creates resource metadata or supplies storage paths directly. The shared auth
+layout and token recovery also serve multipart requests; no new auth provider exists.
+
+Originals live in the private `study-resources` bucket. PostgreSQL stores resources
+and ordered PDF page sections; CSV preview is read from the original, not a generic
+permanent CSV-row table. Processing is synchronous and size/output bounded. Storage
+upload precedes metadata creation and PDF extraction. The uploaded/processing
+transitions and final ready/failed state commit together; intermediate states are
+not durable background jobs. CSV validation occurs before Storage writes. Storage
+and PostgreSQL cannot share a transaction: upload failures compensate new objects,
+and deletion retains metadata when Storage fails. Provider/database failures are
+reported without keys, signed links, file contents or raw exception text.
+
+The resource processing service is the future worker boundary. No queue, OCR,
+embeddings, document generation or AI calls are introduced by Phase 7.
 
 Keep the first implementation simple.
 

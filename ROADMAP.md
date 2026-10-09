@@ -120,6 +120,12 @@ Implemented: a compact real-data Dashboard with profile-timezone Today events, r
 
 ## Phase 7 — Resource library
 
+Phase 7 scope includes private Storage originals, owner-scoped metadata/PDF page
+sections, PDF text extraction and CSV validation/20-row previews (moved into this
+phase by the explicit user prompt). Resource Library upload/list/filter/detail,
+short-lived download/open, safe deletion and failure statuses are included.
+No CSV quiz/flashcard/domain import, OCR, AI, vector search or later feature starts.
+
 - Supabase Storage
 - resources
 - upload/list/filter

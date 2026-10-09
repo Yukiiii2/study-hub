@@ -161,6 +161,34 @@ Decision: zero event/task/session inserts or updates; both sheets remain report-
 
 ## PDF
 
+### Implemented Phase 7 resource uploads
+
+Upload through `POST /api/resources/upload`; the original is retained in private
+Supabase Storage, not the repository. Limit 4 MiB; filename extension, declared
+MIME and actual content are checked. Storage uses server-generated user/resource
+UUID paths and sanitized filenames, while metadata preserves the submitted name.
+The Library upload is file preservation/processing, not a bulk domain import.
+
+PDF text extraction uses pypdf, preserving page number and order in
+document_sections. Empty pages remain identifiable. No extractable text produces
+a failed processing status explaining possible scanned/image content. Unreadable
+or encrypted documents produce safe errors; no OCR, tables or images are fabricated.
+Parsing is isolated, synchronous and bounded; larger jobs require a future worker.
+
+PDF processing accepts at most 200 pages, 20,000 text characters per page and
+1,000,000 overall. Decoded streams are bounded to 2,000,000 bytes each and
+20,000,000 cumulatively, including repeated Form invocations (at most 200 per
+page). Exceeding these bounds produces a failed status, not truncated ready text.
+
+CSV uses Python's standard csv module with strict UTF-8/BOM decoding and
+comma-separated header/row/quote validation. Bounds are 100 columns, 200 header
+characters, 10,000 characters per cell, 100,000 data rows and 200,000 preview
+characters. The preview contains at most 20 rows. Other delimiters/encodings
+require a later explicit format contract. Metadata stores row count; the original stays in
+Storage. Content requests reconstruct previews without permanently persisting
+arbitrary rows. Malformed input is rejected and never imported into other domains.
+Quiz/flashcard CSV templates later in this document remain unimplemented contracts.
+
 Initial support: text-based/selectable-text PDFs.
 
 Store:

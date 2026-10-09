@@ -196,6 +196,26 @@ All four planner tables enable RLS, revoke anonymous/public privileges, and gran
 
 ## Resources
 
+Implemented in Phase 7 by additive revision `0005_resources`, following
+`0004_study_planner`; no existing curriculum/planner data is replaced. UUID
+ownership references profiles. A topic requires its matching subject through a
+composite foreign key, and FastAPI additionally checks active curriculum.
+
+`resources` stores `storage_bucket`, unique `storage_path`, `file_size_bytes`,
+`row_count`, and a nullable safe `error_message` alongside the fields below.
+Types are exactly pdf/csv; statuses uploaded/processing/ready/failed. Updates reuse
+the existing updated-at trigger. API metadata omits owner and storage locators.
+
+Phase 7 sections use `id`, `user_id`, `resource_id`, `page_number`, `section_index`, `content`,
+`created_at`: one ordered section per PDF page, cascading on resource deletion.
+Semantic headings/chunks remain future work. CSV headers/previews are not domain rows.
+
+RLS enables owner-only authenticated SELECT on resources; sections follow their
+owning resource. Anonymous reads and browser mutations are denied. FastAPI scopes
+every query to the verified UUID even when privileged credentials bypass RLS.
+Private Storage reads require an own path and matching own metadata; no browser
+upload/update/delete policy is created. Bucket creation uses the Storage API.
+
 ### resources
 
 - id
@@ -205,11 +225,14 @@ All four planner tables enable RLS, revoke anonymous/public privileges, and gran
 - title
 - original_filename
 - resource_type
+- storage_bucket
 - storage_path
 - mime_type
-- size_bytes
+- file_size_bytes
 - processing_status
 - page_count nullable
+- row_count nullable
+- error_message nullable
 - created_at
 - updated_at
 
@@ -221,13 +244,11 @@ Initial resource types:
 ### document_sections
 
 - id
+- user_id
 - resource_id
-- heading nullable
-- page_start nullable
-- page_end nullable
-- sequence_number
-- text
-- metadata jsonb nullable
+- page_number
+- section_index
+- content
 - created_at
 
 Exact AI chunking is deferred until AI implementation.
