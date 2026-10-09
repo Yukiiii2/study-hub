@@ -225,18 +225,47 @@ Do not claim exact page grounding if parser output cannot support it.
 
 ### Quiz CSV
 
-Candidate columns:
+Implemented Phase 8, independently of Library file uploads. Use
+`POST /api/imports/questions/preview` with multipart file, then explicitly confirm
+with `/commit`, reuploading the same file and its preview_token. The signed token
+binds the user/file and expires after 15 minutes. Commit revalidates all rows,
+ownership and duplicates inside a transaction; errors block the entire import.
+No Storage object or resource row is created by this dedicated import.
+
+UTF-8/BOM comma CSV only, at most 1 MiB and 500 data rows. The header-only
+template is `data/templates/questions.csv`. Required fields are question and
+correct_answer. Optional fields: subject, topic, question_type, option_a through
+option_f, explanation, resource_id and source_page. Type defaults to single_select;
+multi_select uses semicolon-separated correct keys (A–F). True/false uses blank
+option columns and TRUE/FALSE keys. Subject codes map to existing subjects,
+including MS -> MAS; topic uses its unique code in that subject. Unknown or
+ambiguous mappings are errors, never invented. Source resource/page must be owned
+and valid. No arbitrary CSV domain import, flashcards or AI generation.
+
+Dry run reports row/valid/duplicate counts, proposed inserts, unchanged rows,
+warnings/errors with row/field/reason, and at most 20 sample records. Identity is
+owner + subject/topic + whitespace-normalized prompt; full canonical content
+fingerprints distinguish identical rows from conflicting options/keys/type/source
+or explanation. Exact duplicates are reported and skipped; conflicts reject the
+commit rather than overwriting. A second identical import proposes zero inserts.
+
+Supported question import columns:
 
 ```text
 subject
 topic
+question_type
 question
 option_a
 option_b
 option_c
 option_d
+option_e
+option_f
 correct_answer
 explanation
+resource_id
+source_page
 ```
 
 Validate question, answer, options, subject/topic mapping, encoding, duplicates, and syntax.

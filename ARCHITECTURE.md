@@ -253,6 +253,15 @@ See `DEPLOYMENT.md`.
 
 ## Architectural invariants
 
+Phase 8 keeps validation, source ownership, CSV normalization and scoring in
+FastAPI, with separate quiz routes/schemas/repositories/services and a dedicated
+CSV parser/import service. PostgreSQL stores questions/options, ordered quizzes,
+private frozen attempt snapshots and persisted answers. Next.js owns authoring,
+ordered selection, taking and review; it never computes authoritative scores.
+The existing shared authenticated layout/client is reused without per-page guards
+or extra listeners. CSV import uses existing backend signing credentials only;
+no new secret, SDK, worker or paid resource is required.
+
 1. Frontend and backend remain separately runnable.
 2. Business logic stays backend-side.
 3. Secrets stay server-side.

@@ -9,6 +9,8 @@ from app.api.videos import router as videos_router
 from app.api.planner import router as planner_router
 from app.api.dashboard import router as dashboard_router
 from app.api.resources import router as resources_router
+from app.api.quizzes import router as quizzes_router
+from app.api.quiz_import import router as question_import_router, QuestionImportBodyLimit
 from app.api.resource_body_limit import ResourceUploadBodyLimit
 from app.core.config import get_settings
 
@@ -16,6 +18,7 @@ settings = get_settings()
 
 app = FastAPI(title="Study Hub API", version="0.1.0")
 app.add_middleware(ResourceUploadBodyLimit)
+app.add_middleware(QuestionImportBodyLimit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -31,3 +34,5 @@ app.include_router(videos_router)
 app.include_router(planner_router)
 app.include_router(dashboard_router)
 app.include_router(resources_router)
+app.include_router(quizzes_router)
+app.include_router(question_import_router)

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. Phase 6 adds owner-scoped planning and actual sessions. Later domains below remain planned.
+Relational domains for CPA Study Hub. Phase 2 implements profiles, subjects, and the topics structure; Phase 4 populates shared curriculum topics. Phase 5 adds shared videos and private video progress. Phase 6 adds owner-scoped planning and actual sessions. Phase 7 adds private resources; Phase 8 adds private questions, quizzes and attempts. Later domains below remain planned.
 
 ## Implemented Phase 2 foundation
 
@@ -255,10 +255,34 @@ Exact AI chunking is deferred until AI implementation.
 
 ## Questions and quizzes
 
+Phase 8 implements private question banks and quizzes through additive revision
+`0006_quizzes`, after resources. Every owner comes from verified Auth identity;
+curriculum is shared, source resources are private. Tables and composite relations
+are owner-scoped, RLS enabled, browser mutation privileges revoked. Answer keys and
+attempt snapshots have no browser SELECT grants; author bank APIs intentionally
+return an owner's keys, while taking APIs never expose them before submission.
+
+Question types are single_select, multi_select and true_false. Stable option keys
+identify answers; source_page is optional and validated against an owned PDF.
+Questions/quizzes are archived instead of removed. Existing source deletion must
+detach source links while preserving question/attempt history.
+
+Quiz question order is explicit and unique. Starting freezes the ordered question
+content/options/keys/explanations/source references into a backend-only snapshot.
+One active attempt per owner/quiz resumes on repeated start. Answer upserts and
+completion lock the same attempt row, preserving concurrent submission integrity.
+Grading uses the frozen snapshot, never current bank edits. Completed answers and
+scores are immutable; repeated completion returns the original result.
+
+CSV identity is owner + subject/topic + whitespace-normalized prompt. A canonical
+payload fingerprint distinguishes exact unchanged duplicates from conflicts; no
+bulk overwrite or destructive cleanup occurs. See IMPORTS.md and the exact
+[Phase 8 contract](docs/phase-8-quizzes.md).
+
 ### questions
 
 - id
-- user_id nullable depending on ownership model
+- user_id
 - subject_id nullable
 - topic_id nullable
 - resource_id nullable
@@ -266,22 +290,26 @@ Exact AI chunking is deferred until AI implementation.
 - prompt
 - explanation nullable
 - source_page nullable
-- source_section_id nullable
 - origin
+- is_archived
+- identity_hash
+- content_hash
 - created_at
 - updated_at
 
-Origins may include manual, csv, ai, imported.
+Implemented origins are manual/csv only. Identity/content hashes are internal
+deduplication fields, not exposed in API metadata. Source section links and AI
+origins are deferred.
 
 ### question_options
 
 - id
+- user_id
 - question_id
 - option_key
 - text
 - is_correct
 - display_order
-- feedback nullable
 
 ### quizzes
 
@@ -291,11 +319,13 @@ Origins may include manual, csv, ai, imported.
 - topic_id nullable
 - title
 - description nullable
+- is_archived
 - created_at
 - updated_at
 
 ### quiz_questions
 
+- user_id
 - quiz_id
 - question_id
 - display_order
@@ -305,23 +335,27 @@ Origins may include manual, csv, ai, imported.
 - id
 - user_id
 - quiz_id
+- title
+- status
+- snapshot (private JSONB)
 - started_at
 - completed_at nullable
 - score_value nullable
+- total_questions
 - score_percent nullable
-- created_at
 
 ### quiz_answers
 
-- id
+- user_id
 - attempt_id
 - question_id
-- selected answer representation
-- is_correct
+- selected_keys (JSONB array)
+- is_correct nullable until submission
 - answered_at
-- time_seconds nullable
 
-Final multi-select storage representation is an implementation-phase decision.
+Answers use composite primary key `(attempt_id, question_id)`. Multiple-choice
+selections are stable option-key arrays; exact-set grading happens only on the
+server. No per-question timing or advanced quiz metrics are implemented.
 
 ## Flashcards and recall
 

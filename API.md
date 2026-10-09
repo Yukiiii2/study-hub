@@ -157,13 +157,32 @@ Commit must validate again server-side.
 
 ## Quizzes
 
-- `GET /api/quizzes`
-- `POST /api/quizzes`
-- `GET /api/quizzes/{quiz_id}`
-- `POST /api/quizzes/{quiz_id}/attempts`
-- `POST /api/quiz-attempts/{attempt_id}/answers`
-- `POST /api/quiz-attempts/{attempt_id}/complete`
-- `GET /api/quiz-attempts/{attempt_id}/results`
+Implemented Phase 8. All routes authenticate the verified Supabase bearer user.
+No client-controlled owner, score or correctness fields are accepted. Missing or
+foreign records return 404; completed/mapping conflicts 409; invalid data 422;
+dependency outages sanitized 503. Bank routes are author views; quiz detail and
+active attempt DTOs omit keys/explanations/correctness, including nested options.
+
+- GET/POST `/api/questions`: private bank list and creation; GET/PATCH
+  `/api/questions/{id}`: author detail/edit/archive.
+- GET/POST `/api/quizzes`: private list/builder creation; GET/PATCH
+  `/api/quizzes/{id}`: detail, ordered builder editing/archive.
+- POST `/api/quizzes/{id}/attempts`: start or resume the owner's active attempt.
+- GET `/api/quiz-attempts`: paginated history, optional quiz_id filter.
+- GET `/api/quiz-attempts/{id}`: persisted answers and frozen questions.
+- POST `/api/quiz-attempts/{id}/answers`: `{question_id,selected_keys}`; validates
+  question membership, keys and cardinality; saving does not reveal grading.
+- POST `/api/quiz-attempts/{id}/complete`: atomic server grading; repeat returns
+  the existing result without changing timestamps or scores.
+- GET `/api/quiz-attempts/{id}/results`: completed review; 409 before completion.
+- POST `/api/imports/questions/preview` and `/commit`: bounded CSV dry run and
+  confirmed transactional insert; see IMPORTS.md.
+
+List envelopes use questions/quizzes/attempts plus total, limit default50/max100
+and offset0. Quiz definitions allow 1..100 unique active owned questions.
+The exact DTO/request contracts and bounds are in [Phase 8](docs/phase-8-quizzes.md).
+Personal self-study does not prevent an author reading their own Question Bank
+keys; the taking flow never receives them until its attempt is completed.
 
 ## Flashcards
 

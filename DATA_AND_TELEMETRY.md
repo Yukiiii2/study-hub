@@ -59,6 +59,22 @@ Phase 6.5 exposes these same metrics across active subjects on Dashboard: total/
 
 ## Quiz metrics
 
+Phase 8 grades completed snapshots server-side. Each question is worth one point;
+single-select/true-false require the one correct key, multi-select requires exact
+set equality. Missing/empty answers earn zero; there is no partial credit or
+negative marking. The denominator is every question in the snapshot.
+score_percent = score_value / total_questions * 100, decimal half-up to two places.
+Answer keys/explanations/correctness stay absent from active-attempt responses.
+Completed results persist with server timestamps and survive later bank/quiz
+edits. Attempt history is real user data; no topic-readiness or advanced analytics
+formula, generated questions, flashcards or activity telemetry is introduced.
+Unsaved browser selections may use a bounded session-only recovery record containing
+question ID, selected keys and their last saved baseline. It contains no prompt,
+answer key, explanation or token, and is cleared on confirmed save/completion;
+it is a draft, never authoritative grading or performance history.
+
+Future aggregate candidates (not implemented in Phase 8):
+
 - attempts
 - latest score
 - best score

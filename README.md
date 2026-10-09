@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 7 - Resource Library and file processing**, following the user-directed phase order. Sign-in, curriculum, private video progress, owner-scoped plans/sessions and private resources use the configured Supabase project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 8 - Quiz engine and question bank**, following the user-directed phase order. Sign-in, curriculum, private video progress, owner-scoped plans/sessions, private resources and quizzes use the configured Supabase project.
 
 ## Repository and architecture
 
@@ -211,9 +211,9 @@ Safe Phase 4 reports: [initial dry run](data/imports/reports/project-1-dry-run.m
 
 Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest tests.test_curriculum_import`. These use isolated temporary workbook fixtures and do not write to Supabase.
 
-The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos and Library are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
+The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library and Quizzes are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic domain imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, quizzes, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
+Intentionally deferred: subject/topic editing, generic domain imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers, flashcards/recall, assessments, analytics, and AI. There are no fake study metrics or charts.
 
 ## Resource Library (Phase 7)
 
@@ -236,7 +236,34 @@ This explicitly creates two temporary Auth accounts and synthetic files in memor
 checks authenticated lifecycle/RLS/Storage isolation, then removes only its own
 verification resources/accounts. No uploaded PDF/CSV fixture, credentials or
 private document content is printed or committed. A future worker is deferred;
-CSV quiz/flashcard imports, AI, embeddings and all Phase 8 features remain deferred.
+CSV flashcard imports, AI, embeddings and later features remain deferred. Question CSV import uses the separate Phase 8 flow below.
+
+## Quiz engine and Question Bank (Phase 8)
+
+Open `/quizzes` for your quizzes and attempt history, and `/question-bank` for
+manual questions or validated question CSV import. Build quizzes by selecting and
+ordering your own questions. Single-select, multi-select and true/false are
+supported. Answers save server-side before navigation and survive reload. Starting
+resumes an unfinished attempt; submission grades its frozen snapshot. Results show
+real scores, choices, explanations and source references. Later bank edits never
+change completed results. Archive keeps history instead of deleting it.
+
+FastAPI owns grading and access control. Taking responses hide answer keys until
+submission; the author's Question Bank intentionally exposes their own keys.
+Multi-select uses exact-set grading, no partial credit. No generated questions,
+PDF-to-quiz conversion, flashcards, assessments or advanced analytics.
+
+Apply additive `0006_quizzes` with `python -m alembic upgrade head` from backend.
+No new credentials/dependencies. CSV uses `data/templates/questions.csv`, a <=1 MiB,
+500-row UTF-8 comma format; dry-run/confirmation is mandatory. Exact duplicates are
+unchanged, conflicting content rejected. See IMPORTS.md and
+[the Phase 8 contract](docs/phase-8-quizzes.md).
+
+Focused live validation from root:
+`backend/.venv/Scripts/python.exe scripts/verify_quizzes.py --run`.
+It creates only temporary Auth accounts, a synthetic resource and synthetic
+questions/quizzes, verifies persistence/grading/isolation/import reruns, then
+cleans up its own data. Secrets and question/file content are not printed.
 
 ## Git and deployment
 

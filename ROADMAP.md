@@ -133,25 +133,23 @@ No CSV quiz/flashcard/domain import, OCR, AI, vector search or later feature sta
 - CSV upload
 - processing states
 
-## Phase 8 — PDF and CSV processing
+## Phase 8 - Quiz engine + question bank
 
-- text PDF extraction
-- page/section references
-- CSV preview/validation
-- quiz CSV import
-- flashcard CSV import
+The explicit user phase order moves the originally planned quiz engine into
+Phase 8. PDF text extraction and generic CSV previews were completed in Phase 7.
 
-No OCR yet.
+Implemented scope: private manual/CSV question banks; single-select, multi-select
+and true/false; subject/topic/owned-resource associations; ordered quiz builder;
+frozen attempts and persisted answers; server-side exact grading; history and
+review; pre-submit key protection; validated preview/confirmed idempotent CSV
+import; owner RLS and restricted grading-column grants. Shared auth stays intact.
+No flashcards, spaced repetition, AI/PDF-to-quiz generation, assessments or
+advanced analytics.
 
-## Phase 9 — Quiz engine
+## Phase 9 - Not started
 
-- questions/options
-- quizzes
-- attempts/answers
-- scoring
-- explanations
-- results
-- mistake review
+Await the user's next phase instruction. The remaining original roadmap below is
+future scope, not authorization to begin it.
 
 ## Phase 10 — Flashcards and recall
 
