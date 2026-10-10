@@ -1,5 +1,19 @@
 # DEPLOYMENT.md
 
+## Phase 12 AI configuration
+
+Set GEMINI_API_KEY and GEMINI_MODEL only in backend runtime configuration
+(locally backend/.env). Examples remain blank. Choose an accessible Gemini text
+model supporting structured JSON from the
+[provider catalog](https://ai.google.dev/gemini-api/docs/models). Never expose an
+AI key through NEXT_PUBLIC variables. Apply additive 0010_ai_provenance first.
+Missing provider settings return sanitized 503 while existing features work.
+Configure provider/project quotas as the external hard cost boundary; in-process
+limits reset and do not coordinate multiple workers. Selected passages leave
+Study Hub only after an authenticated user explicitly requests AI assistance.
+No paid provider project or deployment is provisioned. Generation has a 30-second
+deadline/no retries; workers and distributed quotas remain separate future work.
+
 ## Target deployment
 
 ### Frontend

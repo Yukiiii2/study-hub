@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.ai.draft_receipts import DraftReceiptError, verify_draft_receipt
+
 from app.repositories import flashcards as repo
 from app.schemas.flashcards import (CardCreate, CardList, CardResponse, DeckCreate, DeckList,
                                     DeckResponse, DueList, ReviewList, ReviewResponse)
@@ -33,7 +35,7 @@ def _response(schema, row):
 
 
 def _merged(schema, current, patch):
-    values = {key: current[key] for key in schema.model_fields}
+    values = {key: current[key] for key in schema.model_fields if key in current}
     values.update(patch.model_dump(exclude_unset=True))
     try:
         return schema.model_validate(values)
@@ -105,10 +107,17 @@ def get_card(user_id, card_id):
 
 
 def create_card(user_id, data):
+    values = data.model_dump()
+    if data.ai_draft_receipt is not None:
+        try:
+            provenance = verify_draft_receipt(data.ai_draft_receipt, user_id, "flashcard")
+        except DraftReceiptError as error:
+            raise FlashcardError(error.status_code, error.detail) from None
+        values.update(status="suspended", ai_provenance=provenance.model_dump(mode="json"))
     with repo.transaction() as connection:
         decks = _lock_decks(connection, user_id, [data.deck_id])
         _validate_card(connection, user_id, data, decks)
-        return _response(CardResponse, repo.insert_record(connection, "card", user_id, data.model_dump(), now=_now()))
+        return _response(CardResponse, repo.insert_record(connection, "card", user_id, values, now=_now()))
 
 
 def patch_card(user_id, card_id, patch):

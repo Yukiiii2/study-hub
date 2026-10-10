@@ -5,6 +5,8 @@ from unicodedata import category
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.ai_provenance import AIProvenanceDTO
+
 QuestionType = Literal["single_select", "multi_select", "true_false"]
 
 
@@ -33,6 +35,7 @@ class QuestionOption(Input):
 
 
 class QuestionInput(Input):
+    ai_draft_receipt: str | None = Field(default=None, min_length=1, max_length=2048, strict=True, exclude=True)
     subject_id: UUID | None = None
     topic_id: UUID | None = None
     resource_id: UUID | None = None
@@ -80,7 +83,8 @@ class QuestionInput(Input):
 
 class QuestionResponse(QuestionInput):
     id: UUID
-    origin: Literal["manual", "csv"]
+    origin: Literal["manual", "csv", "ai"]
+    ai_provenance: AIProvenanceDTO | None = None
     is_archived: bool
     created_at: datetime
     updated_at: datetime

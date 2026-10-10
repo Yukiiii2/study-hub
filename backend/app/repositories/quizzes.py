@@ -10,7 +10,7 @@ from app.db.connection import get_engine
 from app.repositories.planner import valid_associations
 from app.schemas.quizzes import QuestionInput
 
-QUESTION_FIELDS = "id,subject_id,topic_id,resource_id,source_page,question_type,prompt,explanation,origin,is_archived,created_at,updated_at"
+QUESTION_FIELDS = "id,subject_id,topic_id,resource_id,source_page,question_type,prompt,explanation,origin,ai_provenance,is_archived,created_at,updated_at"
 QUIZ_FIELDS = "q.id,q.title,q.description,q.subject_id,q.topic_id,q.is_archived,q.created_at,q.updated_at"
 QUIZ_DERIVED = "(SELECT count(*) FROM public.quiz_questions qq WHERE qq.quiz_id=q.id AND qq.user_id=q.user_id) AS question_count,(SELECT a.id FROM public.quiz_attempts a WHERE a.quiz_id=q.id AND a.user_id=q.user_id AND a.status='in_progress') AS active_attempt_id"
 ATTEMPT_FIELDS = "id,quiz_id,title,status,started_at,completed_at,score_value,total_questions,score_percent"
@@ -23,7 +23,7 @@ def transaction():
 
 
 def question_hashes(data):
-    payload = data.model_dump(mode="json")
+    payload = data.model_dump(mode="json", exclude={"ai_draft_receipt", "ai_provenance"})
     payload["prompt"] = " ".join(payload["prompt"].split())
     identity = {key: payload[key] for key in ("subject_id", "topic_id", "prompt")}
     # Option/key ordering is presentation only for duplicate detection.
@@ -51,7 +51,7 @@ def find_import_question(connection, user_id, identity_hash):
     question = get_question(connection, user_id, row["id"])
     # Source deletion can detach associations through the database trigger.
     # Derive the current fingerprint rather than trusting its old stored value.
-    data = QuestionInput.model_validate({key: question[key] for key in QuestionInput.model_fields})
+    data = QuestionInput.model_validate({key: question[key] for key in QuestionInput.model_fields if key in question})
     identity_hash, content_hash = question_hashes(data)
     return {**question, "identity_hash": identity_hash, "content_hash": content_hash}
 
@@ -65,7 +65,7 @@ def find_import_questions(connection, user_id, identity_hashes):
     rows = connection.execute(query, {"user_id": user_id, "identity_hashes": sorted(set(identity_hashes))}).mappings().all()
     existing = {}
     for row in attach_question_options(connection, user_id, rows):
-        data = QuestionInput.model_validate({key: row[key] for key in QuestionInput.model_fields})
+        data = QuestionInput.model_validate({key: row[key] for key in QuestionInput.model_fields if key in row})
         _, content_hash = question_hashes(data)
         existing[row["identity_hash"]] = {**row, "content_hash": content_hash}
     return existing
@@ -136,12 +136,14 @@ def _write_options(connection, user_id, question_id, data):
                          "is_correct": option.key in data.correct_keys, "display_order": index} for index, option in enumerate(data.options)])
 
 
-def insert_question(connection, user_id, data, *, origin="manual", identity_hash=None, content_hash=None):
+def insert_question(connection, user_id, data, *, origin="manual", identity_hash=None, content_hash=None, ai_provenance=None):
     identity_hash, content_hash = question_hashes(data) if identity_hash is None or content_hash is None else (identity_hash, content_hash)
     values = data.model_dump(exclude={"options", "correct_keys"})
     values.update(user_id=user_id, origin=origin, identity_hash=identity_hash, content_hash=content_hash)
+    if ai_provenance is not None:
+        values["ai_provenance"] = json.dumps(ai_provenance)
     columns = ",".join(values)
-    placeholders = ",".join(f":{key}" for key in values)
+    placeholders = ",".join("CAST(:ai_provenance AS jsonb)" if key == "ai_provenance" else f":{key}" for key in values)
     question_id = connection.execute(text(f"INSERT INTO public.questions({columns}) VALUES ({placeholders}) RETURNING id"), values).scalar_one()
     _write_options(connection, user_id, question_id, data)
     return get_question(connection, user_id, question_id)
@@ -167,10 +169,12 @@ def insert_questions(connection, user_id, entries, *, origin="csv"):
                             "VALUES (:user_id,:question_id,:key,:text,:is_correct,:display_order)"), options)
 
 
-def update_question(connection, user_id, question_id, data):
+def update_question(connection, user_id, question_id, data, *, ai_provenance=None):
     values = data.model_dump(exclude={"options", "correct_keys"})
     values["identity_hash"], values["content_hash"] = question_hashes(data)
-    setters = ",".join(f"{key}=:{key}" for key in values)
+    if ai_provenance is not None:
+        values.update(origin="ai", ai_provenance=json.dumps(ai_provenance))
+    setters = ",".join("ai_provenance=CAST(:ai_provenance AS jsonb)" if key == "ai_provenance" else f"{key}=:{key}" for key in values)
     connection.execute(text(f"UPDATE public.questions SET {setters} WHERE user_id=:user_id AND id=:id"), {**values, "user_id": user_id, "id": question_id})
     connection.execute(text("DELETE FROM public.question_options WHERE user_id=:user_id AND question_id=:id"), {"user_id": user_id, "id": question_id})
     _write_options(connection, user_id, question_id, data)

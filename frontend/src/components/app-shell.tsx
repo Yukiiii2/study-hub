@@ -43,6 +43,7 @@ function Navigation() {
         Assessments
       </Link>
       <Link className={`nav-link${pathname === "/analytics" ? " active" : ""}`} href="/analytics" aria-current={pathname === "/analytics" ? "page" : undefined}>Analytics</Link>
+      <Link className={`nav-link${pathname === "/assistant" ? " active" : ""}`} href="/assistant" aria-current={pathname === "/assistant" ? "page" : undefined}>Study assistant</Link>
       <p className="nav-caption">Planned areas</p>
       <ul className="planned-nav" aria-label="Planned areas">
         {plannedAreas.map((label) => (

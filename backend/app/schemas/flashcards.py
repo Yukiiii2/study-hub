@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.ai_provenance import AIProvenanceDTO
+
 CardStatus = Literal["active", "suspended", "archived"]
 ReviewRating = Literal["again", "hard", "good", "easy"]
 
@@ -70,6 +72,7 @@ class DeckList(BaseModel):
 
 
 class CardCreate(Input):
+    ai_draft_receipt: str | None = Field(default=None, min_length=1, max_length=2048, strict=True, exclude=True)
     deck_id: UUID | None = None
     subject_id: UUID | None = None
     topic_id: UUID | None = None
@@ -129,6 +132,7 @@ class CardPatch(Input):
 
 
 class CardResponse(CardCreate):
+    ai_provenance: AIProvenanceDTO | None = None
     id: UUID
     interval_days: int = Field(ge=0, le=365)
     next_review_at: AwareDatetime

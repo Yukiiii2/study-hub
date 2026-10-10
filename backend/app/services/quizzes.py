@@ -1,6 +1,8 @@
 """Deterministic quiz validation, immutable attempt snapshots and locked grading."""
 from decimal import Decimal, ROUND_HALF_UP
 
+from app.ai.draft_receipts import DraftReceiptError, verify_draft_receipt
+
 from app.repositories import quizzes as repo
 from app.schemas.quizzes import ArchiveInput, QuestionInput
 
@@ -79,12 +81,24 @@ def get_question(user_id, question_id):
 
 
 def create_question(user_id, data):
+    provenance = _draft_provenance(user_id, data)
     with repo.transaction() as connection:
         repo.lock_import_owner(connection, user_id)
         validate_question_associations(connection, user_id, data)
         if repo.find_import_question(connection, user_id, repo.question_hashes(data)[0]):
             raise QuizError(409, "A question with this subject, topic and prompt already exists.")
+        if provenance is not None:
+            return repo.insert_question(connection, user_id, data, origin="ai", ai_provenance=provenance)
         return repo.insert_question(connection, user_id, data)
+
+
+def _draft_provenance(user_id, data):
+    if data.ai_draft_receipt is None:
+        return None
+    try:
+        return verify_draft_receipt(data.ai_draft_receipt, user_id, "question").model_dump(mode="json")
+    except DraftReceiptError as error:
+        raise QuizError(error.status_code, error.detail) from None
 
 
 def patch_question(user_id, question_id, data):
@@ -101,7 +115,11 @@ def patch_question(user_id, question_id, data):
             duplicate = repo.find_import_question(connection, user_id, repo.question_hashes(data)[0])
             if duplicate and duplicate["id"] != question_id:
                 raise QuizError(409, "A question with this subject, topic and prompt already exists.")
-            repo.update_question(connection, user_id, question_id, data)
+            provenance = _draft_provenance(user_id, data)
+            if provenance is not None:
+                repo.update_question(connection, user_id, question_id, data, ai_provenance=provenance)
+            else:
+                repo.update_question(connection, user_id, question_id, data)
         return repo.get_question(connection, user_id, question_id)
 
 
@@ -170,7 +188,7 @@ def start_attempt(user_id, quiz_id):
         snapshot = []
         for qid in ids:
             q = questions[qid]
-            frozen = QuestionInput.model_validate({key: q[key] for key in QuestionInput.model_fields}).model_dump(mode="json")
+            frozen = QuestionInput.model_validate({key: q[key] for key in QuestionInput.model_fields if key in q}).model_dump(mode="json")
             snapshot.append({"id": str(qid), **frozen})
         return _attempt(connection, user_id, repo.insert_attempt(connection, user_id, quiz, snapshot))
 

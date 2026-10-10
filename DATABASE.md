@@ -260,7 +260,7 @@ Initial resource types:
 - content
 - created_at
 
-Exact AI chunking is deferred until AI implementation.
+Phase 12 retrieves at most six relevant 1800-character passages from existing sections; no embeddings or extra chunk table.
 
 ## Questions and quizzes
 
@@ -299,16 +299,21 @@ bulk overwrite or destructive cleanup occurs. See IMPORTS.md and the exact
 - prompt
 - explanation nullable
 - source_page nullable
-- origin
+- origin (manual/csv/ai)
+- ai_provenance nullable JSONB
 - is_archived
 - identity_hash
 - content_hash
 - created_at
 - updated_at
 
-Implemented origins are manual/csv only. Identity/content hashes are internal
-deduplication fields, not exposed in API metadata. Source section links and AI
-origins are deferred.
+Identity/content hashes remain internal deduplication fields. Additive migration
+`0010_ai_provenance` permits AI origin and nullable provenance on questions and
+flashcards, preserving ownership/RLS/grants. Explicit confirmed saves verify a
+24-hour owner/kind-bound signed draft receipt before recording provider/model,
+generation time and source IDs/pages. Provenance describes the original draft,
+not certification of subsequent user edits. No prompts/chat history are stored.
+Generation itself never inserts questions, cards or quiz records.
 
 ### question_options
 
@@ -404,12 +409,16 @@ conflicting attached cards. No existing data is truncated or replaced.
 - back
 - notes nullable
 - source_page nullable
+- ai_provenance nullable JSONB
 - status (active/suspended/archived)
 - interval_days
 - next_review_at
 - review_revision
 - created_at
 - updated_at
+
+AI-confirmed cards are initially suspended. They do not enter the due queue
+until the user separately activates them; manual card behavior is unchanged.
 
 ### flashcard_reviews
 

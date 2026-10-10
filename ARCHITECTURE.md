@@ -150,19 +150,23 @@ backend/app/parsers/
 
 ### AI
 
-Planned:
+Implemented Phase 12 backend boundary:
 
 ```text
 backend/app/ai/
-├── client.py
-├── quiz_generator.py
-├── flashcard_generator.py
-├── document_qa.py
-├── summarizer.py
-└── prompts/
+├── provider.py
+├── retrieval.py
+├── prompts.py
+├── limits.py
+└── draft_receipts.py
 ```
 
 AI provider calls stay server-side.
+
+Authenticated routes resolve owned PDF passages/completed quiz snapshots before
+the provider call. Services validate transient responses; explicit save reuses
+existing question/card creation. No chat tables, embeddings or worker queues.
+See [Phase 12](docs/phase-12-ai-study.md) and [AI.md](AI.md).
 
 ## Supabase
 

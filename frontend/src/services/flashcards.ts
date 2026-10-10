@@ -1,11 +1,12 @@
 import { ApiError, authenticatedDelete, authenticatedGet, authenticatedPatch, authenticatedPost } from "./api";
+import type { AIProvenance } from "./ai-provenance";
 
 export type CardStatus = "active" | "suspended" | "archived";
 export type Rating = "again" | "hard" | "good" | "easy";
 export type DeckInput = { title: string; description: string | null; subject_id: string | null };
 export type Deck = DeckInput & { id: string; is_archived: boolean; created_at: string; updated_at: string };
-export type CardInput = { deck_id: string | null; subject_id: string | null; topic_id: string | null; resource_id: string | null; source_page: number | null; front: string; back: string; notes: string | null; status: CardStatus };
-export type Card = CardInput & { id: string; interval_days: number; next_review_at: string; review_revision: number; created_at: string; updated_at: string };
+export type CardInput = { deck_id: string | null; subject_id: string | null; topic_id: string | null; resource_id: string | null; source_page: number | null; front: string; back: string; notes: string | null; status: CardStatus; ai_draft_receipt?: string };
+export type Card = Omit<CardInput, "ai_draft_receipt"> & { id: string; ai_provenance?: AIProvenance | null; interval_days: number; next_review_at: string; review_revision: number; created_at: string; updated_at: string };
 export type ReviewInput = { rating: Rating; expected_revision: number; request_id: string };
 export type CardReview = { id: string; flashcard_id: string; request_id: string; previous_revision: number; reviewed_at: string; rating: Rating; previous_interval_days: number; next_interval_days: number; next_review_at: string; algorithm_version: string; front_snapshot: string; back_snapshot: string; created_at: string };
 export type CardList = { cards: Card[]; total: number };

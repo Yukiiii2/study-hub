@@ -1,9 +1,10 @@
 import { ApiError, authenticatedGet, authenticatedPatch, authenticatedPost } from "./api";
+import type { AIProvenance } from "./ai-provenance";
 
 export type QuestionType = "single_select" | "multi_select" | "true_false";
 export type QuestionOption = { key: string; text: string };
-export type QuestionInput = { subject_id: string | null; topic_id: string | null; resource_id: string | null; source_page: number | null; question_type: QuestionType; prompt: string; explanation: string | null; options: QuestionOption[]; correct_keys: string[] };
-export type Question = QuestionInput & { id: string; origin: "manual" | "csv"; is_archived: boolean; created_at: string; updated_at: string };
+export type QuestionInput = { subject_id: string | null; topic_id: string | null; resource_id: string | null; source_page: number | null; question_type: QuestionType; prompt: string; explanation: string | null; options: QuestionOption[]; correct_keys: string[]; ai_draft_receipt?: string };
+export type Question = Omit<QuestionInput, "ai_draft_receipt"> & { id: string; origin: "manual" | "csv" | "ai"; ai_provenance?: AIProvenance | null; is_archived: boolean; created_at: string; updated_at: string };
 export type TakingQuestion = Omit<QuestionInput, "correct_keys" | "explanation"> & { id: string; selected_keys: string[] };
 export type ReviewQuestion = TakingQuestion & { correct_keys: string[]; explanation: string | null; is_correct: boolean };
 export type QuizInput = { title: string; description: string | null; subject_id: string | null; topic_id: string | null; question_ids: string[] };

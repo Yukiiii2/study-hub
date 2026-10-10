@@ -1,5 +1,6 @@
 """Bounded, owner-scoped flashcard SQL; fixed field lists hide ownership in DTOs."""
 from contextlib import contextmanager
+import json
 
 from sqlalchemy import text
 
@@ -8,7 +9,7 @@ from app.repositories.planner import profile_timezone, valid_associations
 from app.repositories.quizzes import valid_resource
 
 DECK_FIELDS = "id,subject_id,title,description,is_archived,created_at,updated_at"
-CARD_FIELDS = "id,deck_id,subject_id,topic_id,resource_id,source_page,front,back,notes,status,interval_days,next_review_at,review_revision,created_at,updated_at"
+CARD_FIELDS = "id,deck_id,subject_id,topic_id,resource_id,source_page,front,back,notes,status,ai_provenance,interval_days,next_review_at,review_revision,created_at,updated_at"
 REVIEW_FIELDS = "id,flashcard_id,request_id,previous_revision,reviewed_at,rating,previous_interval_days,next_interval_days,next_review_at,algorithm_version,front_snapshot,back_snapshot,created_at"
 TABLES = {"deck": ("flashcard_decks", DECK_FIELDS), "card": ("flashcards", CARD_FIELDS)}
 WRITABLE = {"deck": {"subject_id", "title", "description"},
@@ -35,8 +36,10 @@ def insert_record(connection, kind, user_id, data, *, now=None):
     values["user_id"] = user_id
     if kind == "card":
         values["next_review_at"] = now
+        if data.get("ai_provenance") is not None:
+            values["ai_provenance"] = json.dumps(data["ai_provenance"])
     columns = ",".join(values)
-    placeholders = ",".join(f":{key}" for key in values)
+    placeholders = ",".join("CAST(:ai_provenance AS jsonb)" if key == "ai_provenance" else f":{key}" for key in values)
     row = connection.execute(text(f"INSERT INTO public.{table}({columns}) VALUES ({placeholders}) RETURNING {fields}"), values).mappings().one()
     return dict(row)
 

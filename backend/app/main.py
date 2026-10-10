@@ -15,6 +15,8 @@ from app.api.flashcards import router as flashcards_router
 from app.api.assessments import router as assessments_router
 from app.api.focus import router as focus_router
 from app.api.analytics import router as analytics_router
+from app.api.ai import router as ai_router
+from app.api.ai_body_limit import AIBodyLimit
 from app.api.resource_body_limit import ResourceUploadBodyLimit
 from app.core.config import get_settings
 
@@ -23,6 +25,7 @@ settings = get_settings()
 app = FastAPI(title="Study Hub API", version="0.1.0")
 app.add_middleware(ResourceUploadBodyLimit)
 app.add_middleware(QuestionImportBodyLimit)
+app.add_middleware(AIBodyLimit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -44,3 +47,4 @@ app.include_router(flashcards_router)
 app.include_router(assessments_router)
 app.include_router(focus_router)
 app.include_router(analytics_router)
+app.include_router(ai_router)

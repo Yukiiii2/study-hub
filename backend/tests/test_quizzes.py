@@ -384,7 +384,7 @@ class BatchedQuestionChecks(unittest.TestCase):
         connection = BatchQueryConnection(2)
         for index, row in enumerate(connection.rows):
             row["prompt"] = f"Question {index}?"
-            data = QuestionInput.model_validate({key: row[key] for key in QuestionInput.model_fields})
+            data = QuestionInput.model_validate({key: row[key] for key in QuestionInput.model_fields if key in row})
             row["identity_hash"], row["content_hash"] = repo.question_hashes(data)
         hashes = [row["identity_hash"] for row in connection.rows]
         user = uuid4()

@@ -10,8 +10,9 @@ AI is study assistance, not the authority for core application state.
 
 Use a small backend provider abstraction.
 
-Initial candidate:
-- Gemini
+Phase 12 provider:
+- Gemini, with explicit backend-only `GEMINI_API_KEY` and `GEMINI_MODEL`.
+- REST through existing HTTPX; no automatic provider/model fallback or AI SDK.
 
 Future provider:
 - OpenAI or another supported provider
@@ -84,12 +85,44 @@ AI keys:
 
 ## Cost/rate control
 
-Before production rollout add:
+Phase 12 implements:
 
 - rate limits
 - request-size limits
 - token/document limits
 - clear processing/error states
+
+Limits: prompt 2000 characters, request body 32 KiB, six PDF passages at 1800
+characters each, total context 12000 characters, output 4096 tokens/24000 text
+characters, provider envelope 96 KiB and total deadline 30 seconds. Draft counts
+are 1..5 questions or 1..10 cards. Per process: one in-flight request per user,
+five/minute, 100/day and eight calls concurrently. Counters reset on restart and
+are not distributed; provider/project quotas remain the external hard cost limit.
+
+## Implemented Phase 12 workflow
+
+`/assistant` supports curriculum questions, PDF Q&A/summaries and editable quiz/
+flashcard drafts. Quiz review explanations read owned completed snapshots, never
+client-supplied keys, and cannot change grading. Generation never persists data.
+Explicit confirmation reuses existing question/card APIs; AI cards save suspended
+and enter Recall only after separate activation. Signed provenance describes
+draft origin, not certification of later user edits. No raw prompts/chat history
+are persisted or logged.
+
+Retrieve selected owned ready PDF sections, not entire files. Specific searches
+without relevant passages return insufficient context. Generic summaries use a
+bounded selection, without claiming full-document coverage. Citations must quote
+selected passages exactly and retain resource title/page references. Topic-only
+help is identified as AI knowledge with curriculum context. Evidence pointers
+do not guarantee the factual accuracy of every generated claim.
+
+Document/user text is untrusted data, separate from fixed system instructions.
+No tools/function calls, autonomous writes or client-controlled hidden prompts
+are available. Provider failures are sanitized; credentials stay server-side.
+See [Phase 12](docs/phase-12-ai-study.md),
+[Gemini REST](https://ai.google.dev/api/generate-content),
+[structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) and
+[model catalog](https://ai.google.dev/gemini-api/docs/models).
 
 ## Long-running processing
 

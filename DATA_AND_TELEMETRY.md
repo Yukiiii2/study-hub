@@ -1,5 +1,17 @@
 # DATA_AND_TELEMETRY.md
 
+## Phase 12 AI boundary
+
+AI output is a transient suggestion, not progress. Only reviewed, explicit
+question/card saves persist data, with provider/model/time and original source
+IDs/pages. Provenance records draft origin rather than certifying edited content.
+AI cards initially remain suspended; no recall history or active schedule is
+generated. Quiz explanations use completed snapshots and cannot change grades.
+No raw prompts/chat history are persisted. Verified PDF quotes/page pointers aid
+source checking, without guaranteeing every generated claim. Topic-only help has
+no invented PDF citations. Rate counters contain only bounded identities and
+timestamps, never document content or credentials. See [AI.md](AI.md).
+
 ## Phase 11 actual-time analytics
 
 Focus reuses persisted planner sessions. The backend owns timestamps and final

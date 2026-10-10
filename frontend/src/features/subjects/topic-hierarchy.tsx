@@ -10,6 +10,8 @@ export function TopicHierarchy({ topics }: { topics: Topic[] }) {
       <div className="topic-title">{topic.code && <span className="topic-code">{topic.code}</span>}<h3>{topic.title}</h3></div>
       {topic.description && <p>{topic.description}</p>}
       <Link className="topic-focus-link" href={`/focus?${new URLSearchParams({ subject_id: topic.subject_id, topic_id: topic.id })}`} aria-label={`Start focus session for ${topic.title}`}>Focus on this topic</Link>
+      <Link className="topic-focus-link assistant-topic-link" href={`/assistant?${new URLSearchParams({ subject_id: topic.subject_id, topic_id: topic.id, mode: "ask", prompt: "Summarize the key concepts for this topic." })}`} aria-label={`Summarize ${topic.title} with AI`}>Summarize with AI</Link>
+      <Link className="topic-focus-link assistant-topic-link" href={`/assistant?${new URLSearchParams({ subject_id: topic.subject_id, topic_id: topic.id, mode: "quiz" })}`} aria-label={`Generate question drafts for ${topic.title}`}>Generate question drafts</Link>
     </li>)}
   </ul>;
 }

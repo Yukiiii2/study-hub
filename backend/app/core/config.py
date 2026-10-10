@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+import re
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +18,15 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_secret_key: SecretStr = SecretStr("")
     database_url: SecretStr = SecretStr("")
+    gemini_api_key: SecretStr = SecretStr("")
+    gemini_model: str = ""
+
+    @field_validator("gemini_model")
+    @classmethod
+    def validate_gemini_model(cls, value: str) -> str:
+        if value and not re.fullmatch(r"gemini-[A-Za-z0-9][A-Za-z0-9._-]{0,99}", value):
+            raise ValueError("GEMINI_MODEL must be an explicit Gemini model identifier")
+        return value
 
     @field_validator("supabase_secret_key")
     @classmethod

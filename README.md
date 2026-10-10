@@ -1,6 +1,6 @@
 # Study Hub
 
-Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 11 - Analytics and Focus Timer**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes, flashcard recall, assessments and study analytics use the configured Supabase project.
+Study Hub is a focused study-management and learning workspace. Its current primary use case is CPALE review. The repository now implements **Phase 12 - AI Study Features**, following the user-directed phase order. Sign-in, curriculum, private video progress, plans/sessions, resources, quizzes, flashcard recall, assessments and study analytics use the configured Supabase project. AI assistance additionally requires backend Gemini configuration.
 
 ## Repository and architecture
 
@@ -91,10 +91,11 @@ SUPABASE_URL=
 SUPABASE_SECRET_KEY=
 DATABASE_URL=
 GEMINI_API_KEY=
+GEMINI_MODEL=
 CORS_ORIGINS=
 ```
 
-Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Leave `GEMINI_API_KEY` blank. Set `CORS_ORIGINS=http://localhost:3000,http://localhost:3001` for both local frontend ports. Settings read `backend/.env` by absolute path; process environment overrides the file. The value is split on commas, whitespace is trimmed, and blank entries are discarded. An empty value allows no cross-origin browser access; wildcards are rejected. Production must list only its actual trusted frontend origins. CORS permits GET, POST, PATCH and DELETE; middleware handles OPTIONS preflight with explicit origin/header checks. Changing a cached backend setting requires a server restart.
+Configure `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` using the same Supabase project as the frontend. Configure backend-only `GEMINI_API_KEY` and an explicit `GEMINI_MODEL` to enable Phase 12; otherwise AI routes return an unavailable/configuration error. Set `CORS_ORIGINS=http://localhost:3000,http://localhost:3001` for both local frontend ports. Settings read `backend/.env` by absolute path; process environment overrides the file. The value is split on commas, whitespace is trimmed, and blank entries are discarded. An empty value allows no cross-origin browser access; wildcards are rejected. Production must list only its actual trusted frontend origins. CORS permits GET, POST, PATCH and DELETE; middleware handles OPTIONS preflight with explicit origin/header checks. Changing a cached backend setting requires a server restart.
 
 Health endpoint: GET http://localhost:8001/health returns HTTP 200:
 
@@ -213,7 +214,7 @@ Narrow importer checks from `backend/`: `.\.venv\Scripts\python.exe -m unittest 
 
 The dark shell remains intact; Dashboard, Study Plan, Subjects, Videos, Library, Quizzes, Flashcards, Recall and Assessments are functional. The sidebar identifies only later features as planned. RLS permits own-profile reads/updates and authenticated curriculum reads, with no normal-user curriculum writes. Direct backend database credentials can bypass RLS: verified identity and explicit user scoping remain mandatory for user-owned repositories.
 
-Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers and AI. Charts use recorded study sessions only.
+Intentionally deferred: subject/topic editing, generic domain/flashcard CSV imports, video playback/viewing-time measurement, schedule import, drag-and-drop, advanced timers. AI assistance is introduced in Phase 12 below. Charts use recorded study sessions only.
 
 ## Resource Library (Phase 7)
 
@@ -236,7 +237,7 @@ This explicitly creates two temporary Auth accounts and synthetic files in memor
 checks authenticated lifecycle/RLS/Storage isolation, then removes only its own
 verification resources/accounts. No uploaded PDF/CSV fixture, credentials or
 private document content is printed or committed. A future worker is deferred;
-CSV flashcard imports, AI, embeddings and later features remain deferred. Question CSV import uses the separate Phase 8 flow below.
+CSV flashcard imports, embeddings and later features remain deferred. Question CSV import uses the separate Phase 8 flow below.
 
 ## Quiz engine and Question Bank (Phase 8)
 
@@ -292,8 +293,7 @@ Focused live validation from root:
 `backend/.venv/Scripts/python.exe scripts/verify_flashcards.py --run`.
 It creates temporary synthetic accounts/cards/quizzes/resources, checks authenticated
 CRUD, due scheduling, retry concurrency and RLS, then cleans up its own fixtures.
-Secrets and file/card contents are not printed. AI/PDF-generated cards, flashcard
-CSV import and advanced analytics remain deferred; assessments and Focus are introduced below.
+Secrets and file/card contents are not printed. Flashcard CSV import remains deferred; assessments, Focus and AI drafts are introduced below.
 
 ## Assessments (Phase 10)
 
@@ -314,7 +314,7 @@ Focused validation: from backend run
 `python -m unittest tests.test_assessments tests.test_assessment_import`.
 From root, `backend/.venv/Scripts/python.exe scripts/verify_assessments.py --run`
 uses temporary synthetic accounts/progress and
-cleans up its own data. AI and advanced analytics remain deferred.
+cleans up its own data. Focus and AI assistance are introduced below.
 
 ## Analytics and Focus Timer (Phase 11)
 
@@ -342,6 +342,43 @@ Explicit live verification from root:
 `backend/.venv/Scripts/python.exe scripts/verify_analytics_focus.py --run`.
 It creates temporary synthetic accounts/records and cleans only those fixtures.
 No private source files, credentials or test payloads are printed or committed.
+
+## AI Study Features (Phase 12)
+
+`/assistant` accepts subject/topic or an owned ready PDF context for questions,
+summaries, editable MCQ/true-false question drafts and flashcard drafts. Resource
+and topic pages link to these actions; submitted quiz review can explain the
+recorded answer or draft cards from the mistake. All calls go through FastAPI's
+four authenticated `/api/ai` endpoints. No grading, progress or schedule changes
+are made by AI.
+
+Set `GEMINI_API_KEY` and an explicit supported `GEMINI_MODEL` only in ignored
+`backend/.env`; restart FastAPI. No key belongs in frontend variables. Missing
+configuration returns a safe 503. Apply additive `0010_ai_provenance` using
+`python -m alembic upgrade head` from backend. There are no new dependencies.
+
+PDF retrieval sends only selected relevant passages, at most six, and validates
+exact supporting quotes before resolving resource/page citations. Specific
+unmatched questions return insufficient context locally. Summaries cover selected
+passages, not an entire large PDF. Topic-only help is identified as AI knowledge.
+Uploaded text is untrusted material, separate from fixed system instructions.
+Context/output/request caps, a 30-second deadline and per-process concurrency/rate
+limits bound requests; provider quota controls are still required for deployment.
+
+Generation is transient. Review/edit each draft and explicitly confirm its save
+through the existing Question Bank/card APIs. Signed receipts preserve original
+provider/model/source provenance. AI cards save suspended, outside Recall until
+separate activation. No chat history or raw prompts are persisted.
+
+Focused validation from backend:
+`python -m unittest tests.test_ai tests.test_ai_provenance tests.test_quizzes tests.test_flashcards`.
+From frontend: `node tests/ai-assistant.cjs` and `npm.cmd run build`.
+Explicit live Auth/PostgreSQL verification from root:
+`backend/.venv/Scripts/python.exe scripts/verify_ai_study.py --run`.
+This uses a mocked provider with temporary synthetic users/PDF sections and
+cleans only those fixtures; it makes no paid Gemini calls. The missing-provider
+case explicitly isolates blank provider settings, regardless of real configuration.
+See [AI.md](AI.md) and [the Phase 12 contract](docs/phase-12-ai-study.md).
 
 ## Git and deployment
 

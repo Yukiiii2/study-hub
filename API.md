@@ -294,7 +294,25 @@ Later candidates:
 - `POST /api/ai/resources/{resource_id}/generate-flashcards`
 - `POST /api/ai/resources/{resource_id}/ask`
 
-AI endpoints must be authenticated, rate-aware, and source-grounded.
+Implemented Phase 12:
+
+- POST `/api/ai/ask`: subject/topic/resource and a bounded prompt.
+- POST `/api/ai/generate-quiz`: context, optional prompt, count1..5 and optional
+  basic/intermediate/advanced difficulty; transient single-select/true-false draft.
+- POST `/api/ai/generate-flashcards`: context or completed attempt/question,
+  optional prompt and count1..10; transient suspended-card draft.
+- POST `/api/ai/explain-answer`: attempt_id/question_id only, using the owner's
+  completed snapshot without modifying grading.
+
+Resource-nested routes above remain future ideas, not additional endpoints.
+Responses contain source quotes/pages, context, grounding/insufficient-context
+notices and provider/model/time metadata. Generation never persists anything.
+Explicit save uses existing POST `/api/questions` or `/api/flashcards` with an
+optional signed ai_draft_receipt; server-derived ai_provenance is read-only.
+Status codes: 401 unauthenticated; 404 missing/foreign context; 409 unfinished
+attempt; 422 invalid selection; 429 rate limit; 502 invalid provider output;
+503 missing provider/context dependency or deadline. Errors are sanitized.
+See [Phase 12](docs/phase-12-ai-study.md) for exact DTOs and limits.
 
 ## Authentication
 

@@ -174,28 +174,21 @@ subject/activity breakdowns, transparent planned versus actual, heatmap and
 paginated session history. Existing shared auth/session UX is preserved.
 Pause, productivity/readiness scores and later product phases remain deferred.
 
-## Phase 12 — Future scope (not started)
+## Phase 12 - AI Study Features
 
-- study time
-- planned vs actual
-- video completion
-- quiz metrics
-- recall metrics
-- assessment metrics
-- subject analytics
+The explicit user phase order brings AI assistance into Phase 12. Implemented:
+backend Gemini REST adapter; bounded source retrieval and verified page quotes;
+`/assistant`; editable question/flashcard drafts with explicit confirmation;
+completed quiz snapshot explanations; signed original-draft provenance; secondary
+resource/topic actions. AI cards save suspended. No automatic study-state writes,
+embeddings, provider fallback or new SDK. Existing shared session UX is preserved.
+Live Gemini verification requires backend `GEMINI_API_KEY` and `GEMINI_MODEL`;
+focused mocked-provider checks cover the integration without paid API calls.
 
-No readiness score until formula is defined.
+## Phase 13 - Reserved future scope (not started)
 
-## Phase 13 — AI
-
-- provider abstraction
-- Gemini integration
-- document summarization
-- source-grounded Q&A
-- quiz generation
-- flashcard generation
-- explanations
-- limits/error states
+No final QA/deployment or additional product work is authorized by Phase 12.
+Wait for the next explicit phase instruction.
 
 ## Phase 14 — Polish
 

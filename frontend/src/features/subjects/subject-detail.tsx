@@ -34,7 +34,7 @@ export function SubjectDetail({ subjectId }: { subjectId: string }) {
         <span className="subject-marker" data-color={data.subject.color_key ?? undefined} aria-hidden="true" />
         <div><h1>{data.subject.code}</h1><p>{data.subject.name}</p></div>
       </header>
-      <nav className="subject-sections" aria-label="Subject sections"><span aria-current="page">Topics</span><Link href={`/subjects/${subjectId}/videos`}>Videos</Link><Link href={`/focus?subject_id=${encodeURIComponent(subjectId)}`}>Start focus session</Link></nav>
+      <nav className="subject-sections" aria-label="Subject sections"><span aria-current="page">Topics</span><Link href={`/subjects/${subjectId}/videos`}>Videos</Link><Link href={`/focus?subject_id=${encodeURIComponent(subjectId)}`}>Start focus session</Link><Link href={`/assistant?${new URLSearchParams({ subject_id: subjectId, mode: "ask" })}`}>Study with AI</Link></nav>
       <section aria-labelledby="topics-heading">
         <div className="section-heading"><h2 id="topics-heading">Topics</h2><span>{data.topics.length} {data.topics.length === 1 ? "topic" : "topics"}</span></div>
         {data.topics.length === 0 ? <div className="curriculum-state"><h3>Curriculum topics are not available yet</h3><p>Topics will appear here after curriculum import or setup. You can explore the other subjects in the meantime.</p></div> : <TopicHierarchy topics={data.topics} />}
