@@ -3,49 +3,52 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
+import { InterfaceIcon, type IconName } from "@/components/interface-icon";
+
+const navigationGroups: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
+  { label: "Workspace", items: [
+    { href: "/", label: "Dashboard", icon: "dashboard" },
+    { href: "/study-plan", label: "Study Plan", icon: "calendar" },
+    { href: "/focus", label: "Focus", icon: "focus" },
+  ] },
+  { label: "Study tools", items: [
+    { href: "/subjects", label: "Subjects", icon: "subjects" },
+    { href: "/library", label: "Library", icon: "library" },
+    { href: "/quizzes", label: "Quizzes", icon: "quizzes" },
+    { href: "/recall", label: "Recall", icon: "recall" },
+    { href: "/flashcards", label: "Flashcards", icon: "flashcards" },
+    { href: "/assessments", label: "Assessments", icon: "assessments" },
+  ] },
+  { label: "Insights", items: [
+    { href: "/analytics", label: "Analytics", icon: "analytics" },
+    { href: "/assistant", label: "Study assistant", icon: "assistant" },
+  ] },
+];
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`)) || (href === "/quizzes" && pathname === "/question-bank");
+}
 
 function Navigation() {
   const pathname = usePathname();
-  const subjectsActive = pathname === "/subjects" || pathname.startsWith("/subjects/");
-  const libraryActive = pathname === "/library" || pathname.startsWith("/library/");
-  const quizzesActive = pathname === "/quizzes" || pathname.startsWith("/quizzes/") || pathname === "/question-bank";
-  const flashcardsActive = pathname === "/flashcards" || pathname.startsWith("/flashcards/");
-  const assessmentsActive = pathname === "/assessments" || pathname.startsWith("/assessments/");
   return (
     <nav aria-label="Main navigation">
-      <Link className={`nav-link${pathname === "/" ? " active" : ""}`} href="/" aria-current={pathname === "/" ? "page" : undefined}>
-        Dashboard
-      </Link>
-      <Link className={`nav-link${pathname === "/study-plan" ? " active" : ""}`} href="/study-plan" aria-current={pathname === "/study-plan" ? "page" : undefined}>
-        Study Plan
-      </Link>
-      <Link className={`nav-link${pathname === "/focus" ? " active" : ""}`} href="/focus" aria-current={pathname === "/focus" ? "page" : undefined}>Focus</Link>
-      <Link className={`nav-link${subjectsActive ? " active" : ""}`} href="/subjects" aria-current={subjectsActive ? "page" : undefined}>
-        Subjects
-      </Link>
-      <Link className={`nav-link${libraryActive ? " active" : ""}`} href="/library" aria-current={libraryActive ? "page" : undefined}>
-        Library
-      </Link>
-      <Link className={`nav-link${quizzesActive ? " active" : ""}`} href="/quizzes" aria-current={quizzesActive ? "page" : undefined}>
-        Quizzes
-      </Link>
-      <Link className={`nav-link${pathname === "/recall" ? " active" : ""}`} href="/recall" aria-current={pathname === "/recall" ? "page" : undefined}>
-        Recall
-      </Link>
-      <Link className={`nav-link${flashcardsActive ? " active" : ""}`} href="/flashcards" aria-current={flashcardsActive ? "page" : undefined}>
-        Flashcards
-      </Link>
-      <Link className={`nav-link${assessmentsActive ? " active" : ""}`} href="/assessments" aria-current={assessmentsActive ? "page" : undefined}>
-        Assessments
-      </Link>
-      <Link className={`nav-link${pathname === "/analytics" ? " active" : ""}`} href="/analytics" aria-current={pathname === "/analytics" ? "page" : undefined}>Analytics</Link>
-      <Link className={`nav-link${pathname === "/assistant" ? " active" : ""}`} href="/assistant" aria-current={pathname === "/assistant" ? "page" : undefined}>Study assistant</Link>
+      {navigationGroups.map((group) => <div className="nav-group" key={group.label}>
+        <p className="nav-group-label">{group.label}</p>
+        {group.items.map((item) => {
+          const active = isActive(pathname, item.href);
+          return <Link className={`nav-link${active ? " active" : ""}`} href={item.href} aria-current={active ? "page" : undefined} key={item.href}>
+            <InterfaceIcon name={item.icon} /><span>{item.label}</span>
+          </Link>;
+        })}
+      </div>)}
     </nav>
   );
 }
 
 export function AppShell({ children, utility }: { children: ReactNode; utility?: ReactNode }) {
   const pathname = usePathname();
+  const currentTitle = pathname === "/question-bank" ? "Question Bank" : navigationGroups.flatMap((group) => group.items).find((item) => isActive(pathname, item.href))?.label ?? "Study workspace";
   const navigation = useRef<HTMLDetailsElement>(null);
   const content = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -58,14 +61,13 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="sidebar" aria-label="Study Hub sidebar">
-        <Link href="/" className="brand">Study Hub</Link>
+        <Link href="/" className="brand"><span className="brand-mark"><InterfaceIcon name="subjects" /></span>Study Hub</Link>
         <p className="workspace-label">CPALE workspace</p>
         <Navigation />
-        <p className="sidebar-footer">Your review, in one place.</p>
       </aside>
       <div className="workspace">
         <header className="utility-header">
-          <span className="desktop-context">CPALE review</span>
+          <div className="desktop-context"><Link href="/">Workspace</Link><span aria-hidden="true">/</span><span>{currentTitle}</span></div>
           <Link className="mobile-brand" href="/">Study Hub</Link>
           {utility ?? <span className="phase-label">Study workspace</span>}
         </header>

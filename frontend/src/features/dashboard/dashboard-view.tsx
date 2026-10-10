@@ -20,20 +20,21 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
   return <>
     <header className="page-heading dashboard-heading">
       <div><h1>Dashboard</h1><p>{data ? dateLabel(data.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "Your review at a glance."}</p></div>
-      <button type="button" className="secondary-button" disabled={refreshing} onClick={onRefresh}>
+      <nav className="dashboard-actions ui-toolbar" aria-label="Quick actions">
+        <Link className="secondary-button" href="/study-plan">Open Study Plan</Link>
+        <Link className="secondary-button" href="/focus">Open Focus</Link>
+        <Link className="secondary-button" href="/subjects">Browse Subjects</Link>
+        {videoPath && <Link className="secondary-button" href={videoPath}>{data?.continue_video_subject_id ? "Continue Videos" : "Browse Videos"}</Link>}
+        <button type="button" className="secondary-button" disabled={refreshing} onClick={onRefresh}>
         {refreshing ? "Refreshing…" : "Refresh"}
-      </button>
+        </button>
+      </nav>
     </header>
-    <nav className="dashboard-actions" aria-label="Quick actions">
-      <Link className="primary-button" href="/study-plan">Open Study Plan</Link>
-      <Link className="secondary-button" href="/focus">Open Focus</Link>
-      <Link className="secondary-button" href="/subjects">Browse Subjects</Link>
-      {videoPath && <Link className="secondary-button" href={videoPath}>{data?.continue_video_subject_id ? "Continue Videos" : "Browse Videos"}</Link>}
-    </nav>
     {error && <p className="auth-error dashboard-error" role="alert">{error} {data && "Showing the last loaded dashboard."} Use Refresh to try again.</p>}
     {data === null ? !error && <CurriculumLoading /> : <div className="dashboard-grid" aria-busy={refreshing}>
-      <section className="dashboard-section dashboard-today" aria-labelledby="dashboard-today">
-        <header className="dashboard-section-heading"><h2 id="dashboard-today">Today</h2><Link href="/study-plan">Study Plan</Link></header>
+      <div className="dashboard-main">
+      <section className="dashboard-section dashboard-today ui-panel" aria-labelledby="dashboard-today">
+        <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-today">Today</h2><Link href="/study-plan">Study Plan</Link></header>
         <p className="dashboard-section-note">Times in {data.timezone}</p>
         {data.today_events.length === 0 ? <div className="dashboard-empty"><p>No study events today.</p><span>Open Study Plan to add a study block or schedule a task.</span></div> :
           <ul className="dashboard-event-list">{data.today_events.map((event) => <li className="dashboard-event" key={`${event.id}/${event.occurrence_date ?? "one"}`}>
@@ -44,8 +45,8 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
           </li>)}</ul>}
       </section>
 
-      <section className="dashboard-section dashboard-tasks" aria-labelledby="dashboard-tasks">
-        <header className="dashboard-section-heading"><h2 id="dashboard-tasks">Upcoming tasks</h2><Link href="/study-plan">Study Plan</Link></header>
+      <section className="dashboard-section dashboard-tasks ui-panel" aria-labelledby="dashboard-tasks">
+        <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-tasks">Upcoming tasks</h2><Link href="/study-plan">Study Plan</Link></header>
         <p className="dashboard-section-note">Next five pending tasks, earliest due first</p>
         {data.upcoming_tasks.length === 0 ? <div className="dashboard-empty"><p>No pending tasks.</p><span>Create or manage your tasks in Study Plan.</span></div> :
           <ul className="dashboard-task-list">{data.upcoming_tasks.map((task) => <li className="dashboard-task" key={task.id}>
@@ -56,16 +57,18 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
             </> : <span>No due date</span>}</div>
           </li>)}</ul>}
       </section>
+      </div>
 
-      <section className="dashboard-section dashboard-recall" aria-labelledby="dashboard-recall">
-        <header className="dashboard-section-heading"><h2 id="dashboard-recall">Recall</h2><Link href="/recall">Review cards</Link></header>
-        <p>{data.recall_summary.overdue} overdue · {data.recall_summary.due_today} due today</p>
+      <div className="dashboard-aside">
+      <section className="dashboard-section dashboard-recall ui-panel" aria-labelledby="dashboard-recall">
+        <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-recall">Recall</h2><Link href="/recall">Review cards</Link></header>
+        <p className="dashboard-recall-counts"><span>{data.recall_summary.overdue} overdue</span><span aria-hidden="true"> · </span><span>{data.recall_summary.due_today} due today</span></p>
         <p className="dashboard-section-note">Active cards ready now, in {data.timezone}. Future reviews are excluded.</p>
       </section>
 
-      <section className="dashboard-section dashboard-videos" aria-labelledby="dashboard-videos">
-        <header className="dashboard-section-heading"><h2 id="dashboard-videos">Video progress</h2>{videoPath && <Link href={videoPath}>Videos</Link>}</header>
-        <dl className="dashboard-video-counts">
+      <section className="dashboard-section dashboard-videos ui-panel" aria-labelledby="dashboard-videos">
+        <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-videos">Video progress</h2>{videoPath && <Link href={videoPath}>Videos</Link>}</header>
+        <dl className="dashboard-video-counts ui-metrics">
           <div><dt>Videos completed</dt><dd>{summary!.completed_videos}</dd></div>
           <div><dt>Total videos</dt><dd>{summary!.total_videos}</dd></div>
           <div><dt>Remaining</dt><dd>{summary!.remaining_videos}</dd></div>
@@ -78,9 +81,10 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
         {summary!.unknown_duration_videos > 0 && <p className="dashboard-section-note">{summary!.unknown_duration_videos} {summary!.unknown_duration_videos === 1 ? "video without a duration is" : "videos without a duration are"} excluded from time totals.</p>}
         {summary!.total_videos === 0 && <p className="dashboard-section-note">No lectures are available yet. Browse Subjects to view the curriculum.</p>}
       </section>
+      </div>
 
-      <section className="dashboard-section dashboard-subjects" aria-labelledby="dashboard-subjects">
-        <header className="dashboard-section-heading"><h2 id="dashboard-subjects">Subjects</h2><Link href="/subjects">All subjects</Link></header>
+      <section className="dashboard-section dashboard-subjects ui-panel" aria-labelledby="dashboard-subjects">
+        <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-subjects">Subjects</h2><Link href="/subjects">All subjects</Link></header>
         {data.subjects.length === 0 ? <div className="dashboard-empty"><p>No active subjects available.</p></div> :
           <ul className="dashboard-subject-list">{data.subjects.map((subject) => <li className="dashboard-subject" key={subject.id}>
             <span className="subject-marker" data-color={subject.color_key ?? undefined} aria-hidden="true" />

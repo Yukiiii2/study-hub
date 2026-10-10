@@ -111,15 +111,16 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
     {loadError && snapshot && <p className="resource-note">Showing the last loaded totals. Use Refresh to check the current session and totals.</p>}
     {actionError && <p className="auth-error" role="alert">{actionError}</p>}
     {notice && <p className="study-time-notice" role="status">{notice}</p>}
-    {snapshot && <>
-      <section className="focus-session" aria-labelledby="focus-session-title" aria-busy={busy || refreshing}>
-        <h2 id="focus-session-title">{active ? "Session in progress" : "Start a session"}</h2>
-        {active ? <>
+    {snapshot && <div className="focus-layout">
+      <div className="focus-main">
+      <section className="focus-session ui-panel" aria-labelledby="focus-session-title" aria-busy={busy || refreshing}>
+        <header className="ui-section-heading"><h2 id="focus-session-title">{active ? "Session in progress" : "Start a session"}</h2></header>
+        {active ? <div className="focus-timer-stage">
           <p className="resource-note">{activeSubject?.code ?? (active.subject_id ? "Subject selected" : "No subject")}{activeTopic ? ` — ${activeTopic.title}` : ""} · {active.activity_type}{active.study_event_id && " · Linked to a planned event"}</p>
           <div className="focus-timer" role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>
           <p className="resource-note">Started <time dateTime={active.started_at}>{new Intl.DateTimeFormat("en", { timeZone: snapshot.data.timezone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(active.started_at))}</time>. Finish the session to save its recorded duration.</p>
           <button type="button" className="primary-button" disabled={busy || refreshing} onClick={() => void act(true)}>{busy ? "Finishing…" : "Finish session"}</button>
-        </> : <form className="quiz-builder-form" onSubmit={(value) => { value.preventDefault(); void act(false); }}>
+        </div> : <form className="quiz-builder-form focus-session-form" onSubmit={(value) => { value.preventDefault(); void act(false); }}>
           <fieldset className="planner-form-grid" disabled={busy || refreshing}>
             <label className="planner-wide">Planned event (optional)<select value={selectedEvent} disabled={events.loading} onChange={(value) => {
               setSelectedEvent(value.target.value); const next = events.data?.find((item) => eventKey(item) === value.target.value);
@@ -138,8 +139,12 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
           <button className="primary-button focus-start" disabled={busy || refreshing || !validEvent || (!event && (!validSubject || !validTopic || (subject !== "" && topics.loading))) || (needsOccurrence && !occurrence)}>{busy ? "Starting…" : "Start session"}</button>
         </form>}
       </section>
-      <section className="study-time-section" aria-labelledby="focus-today"><div className="section-heading"><h2 id="focus-today">Today</h2><span>{snapshot.data.timezone}</span></div><dl className="study-time-metrics"><div><dt>Completed study time</dt><dd>{studyDuration(snapshot.data.today_seconds)}</dd></div><div><dt>Completed sessions</dt><dd>{snapshot.data.today_session_count}</dd></div></dl><p className="resource-note">The active session is included after you finish. Times use h:mm:ss.</p></section>
-      <section className="study-time-section" aria-labelledby="focus-recent"><div className="section-heading"><h2 id="focus-recent">Recent sessions</h2><Link className="quiz-text-link" href="/analytics">View Analytics</Link></div>{snapshot.data.recent_sessions.length ? <SessionList sessions={snapshot.data.recent_sessions} timezone={snapshot.data.timezone} /> : <p className="resource-note">No completed sessions yet. Start a session to record your study time.</p>}</section>
-    </>}
+      </div>
+      <div className="focus-sidebar">
+        <section className="study-time-section ui-panel focus-today" aria-labelledby="focus-today"><div className="section-heading ui-section-heading"><h2 id="focus-today">Today</h2><span>{snapshot.data.timezone}</span></div><dl className="study-time-metrics ui-metrics"><div><dt>Completed study time</dt><dd>{studyDuration(snapshot.data.today_seconds)}</dd></div><div><dt>Completed sessions</dt><dd>{snapshot.data.today_session_count}</dd></div></dl><p className="resource-note">The active session is included after you finish. Times use h:mm:ss.</p></section>
+        <section className="study-time-section ui-panel focus-recent" aria-labelledby="focus-recent"><div className="section-heading ui-section-heading"><h2 id="focus-recent">Recent sessions</h2><Link className="quiz-text-link" href="/analytics">View Analytics</Link></div>{snapshot.data.recent_sessions.length ? <SessionList sessions={snapshot.data.recent_sessions} timezone={snapshot.data.timezone} /> : <p className="resource-note">No completed sessions yet. Start a session to record your study time.</p>}</section>
+        {!!subjects.data?.length && <section className="study-time-section ui-panel focus-subjects" aria-labelledby="focus-subjects"><header className="ui-section-heading"><h2 id="focus-subjects">Subjects</h2><Link className="quiz-text-link" href="/subjects">All subjects</Link></header><nav className="focus-subject-links" aria-label="Subject shortcuts">{subjects.data.map((value) => <Link className="secondary-button focus-subject-link" href={`/subjects/${encodeURIComponent(value.id)}`} key={value.id}><span className="subject-marker" data-color={value.color_key ?? undefined} aria-hidden="true" />{value.code}</Link>)}</nav></section>}
+      </div>
+    </div>}
   </>;
 }

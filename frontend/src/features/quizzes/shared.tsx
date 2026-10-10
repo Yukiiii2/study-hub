@@ -20,7 +20,7 @@ export function LoadNotice({ loading, error, retry }: { loading: boolean; error:
   return <>{loading && <p className="resource-note" role="status">Loading study data…</p>}{error && <div className="resource-error"><p className="auth-error" role="alert">{error}</p><button type="button" className="secondary-button" onClick={retry}>Try again</button></div>}</>;
 }
 export function Pagination({ offset, total, change, busy = false }: { offset: number; total: number; change: (offset: number) => void; busy?: boolean }) {
-  return <div className="resource-pagination"><span>{total ? `${offset + 1}–${Math.min(offset + 20, total)} of ${total}` : "0 results"}</span><button type="button" className="secondary-button" disabled={busy || !offset} onClick={() => change(Math.max(0, offset - 20))}>Previous</button><button type="button" className="secondary-button" disabled={busy || offset + 20 >= total} onClick={() => change(offset + 20)}>Next</button></div>;
+  return <nav className="resource-pagination" aria-label="Study data pagination"><span>{total ? `${offset + 1}–${Math.min(offset + 20, total)} of ${total}` : "0 results"}</span><button type="button" className="secondary-button" disabled={busy || !offset} onClick={() => change(Math.max(0, offset - 20))}>Previous</button><button type="button" className="secondary-button" disabled={busy || offset + 20 >= total} onClick={() => change(offset + 20)}>Next</button></nav>;
 }
 export function QuizDialog({ title, close, busy = false, children }: { title: string; close: () => void; busy?: boolean; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
