@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/study-ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/services/api";
 import { getFocus, startFocus, studyTimeError, type FocusData } from "@/services/analytics";
@@ -106,15 +108,15 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
   const activeSubject = subjects.data?.find((value) => value.id === active?.subject_id);
   const activeTopic = currentTopics.find((value) => value.id === active?.topic_id);
   return <>
-    <header className="page-heading resource-heading"><div><h1>Focus</h1><p>Start a study session and keep your actual study time.</p></div><button type="button" className="secondary-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh"}</button></header>
+    <PageHeader title="Focus" description="Start a study session and keep your actual study time." actions={<button type="button" className="ghost-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh"}</button>} />
     <LoadNotice loading={!snapshot && refreshing} error={loadError} retry={() => void refresh()} />
     {loadError && snapshot && <p className="resource-note">Showing the last loaded totals. Use Refresh to check the current session and totals.</p>}
     {actionError && <p className="auth-error" role="alert">{actionError}</p>}
     {notice && <p className="study-time-notice" role="status">{notice}</p>}
-    {snapshot && <div className="focus-layout">
+    {snapshot && <div className="focus-layout" data-active={!!active}>
       <div className="focus-main">
       <section className="focus-session ui-panel" aria-labelledby="focus-session-title" aria-busy={busy || refreshing}>
-        <header className="ui-section-heading"><h2 id="focus-session-title">{active ? "Session in progress" : "Start a session"}</h2></header>
+        <header className="ui-section-heading"><h2 id="focus-session-title">{active ? "Session in progress" : "Start a session"}</h2><StatusBadge tone={active ? "success" : "neutral"}>{active ? "Recording study time" : "Ready to focus"}</StatusBadge></header>
         {active ? <div className="focus-timer-stage">
           <p className="resource-note">{activeSubject?.code ?? (active.subject_id ? "Subject selected" : "No subject")}{activeTopic ? ` — ${activeTopic.title}` : ""} · {active.activity_type}{active.study_event_id && " · Linked to a planned event"}</p>
           <div className="focus-timer" role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>

@@ -249,3 +249,38 @@ sidebar. Resource tables retain a labeled, keyboard-focusable scroll region.
 Analytics heatmap dates can be selected with keyboard, pointer or touch to show
 their actual recorded values. Empty/loading/error states retain feature-specific
 recovery actions and never substitute fabricated study data.
+
+
+## Application-wide refinement
+
+Preserve the shared authentication layout when styling any route. All implemented
+feature views use `PageHeader`; `study-ui.tsx` supplies `SectionHeader`,
+`StatusBadge`, `ProgressMeter` and `LoadingNotice` for repeated presentation.
+These components never fetch data or calculate business outcomes. Native progress
+meters show supplied completed/total counts, and are omitted when no total exists.
+
+The surface hierarchy adds secondary `#18262D` and strong `#1D2D34` layers.
+Information uses blue `#7FA9C9`; recall uses gold `#D9C27A`; warnings use
+`#D9B66F`; failures use muted red `#D97C7C`. Subject accents are stable semantic
+tokens selected by the existing database `color_key`, reused across curriculum,
+planner and analytics. State labels always accompany accent color.
+
+Management pages use compact lists, wrapping metadata and restrained section
+surfaces. Focus, Recall and quiz attempts use narrower reading areas with strong
+current-session/question hierarchy. Quiz answer and numbered-navigation states
+include visible selected/correct/incorrect labels; grading details remain hidden
+until the existing completed-attempt guard permits them. Resource previews and
+assistant citations prioritize readable source text over decoration.
+
+Navigation is grouped into Overview, Study, Practice, Resources, Insights and
+System. The top bar keeps identity in a native Account disclosure with Settings
+and the existing sign-out action. Escape closes disclosures and returns focus;
+focus leaving the account disclosure dismisses it. Settings shows existing account
+and timezone information only, without unsupported editable preferences.
+
+Forms retain native labeled controls and dialogs. Secondary layouts stack on
+laptops/tablets; topic actions wrap, video controls stretch on mobile, and quiz
+review definitions stack. Calendar grids retain the existing narrow agenda
+fallback. Touch controls remain at least 44 pixels; reduced motion removes the
+160 ms interaction transitions. Charts retain exact textual values alongside
+visual trends, and no missing study data is fabricated.

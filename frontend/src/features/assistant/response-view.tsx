@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { SectionHeader, StatusBadge } from "@/components/study-ui";
 import type { AIResponse, AIAnswer } from "@/services/ai";
 
 export function AIResponseView({ response }: { response: AIResponse & Partial<Pick<AIAnswer, "answer">> }) {
-  return <section className="assistant-response" aria-label="AI response">
+  return <section className="assistant-response" aria-label="AI response"><SectionHeader title="Study response" actions={<StatusBadge tone={response.citations.length ? "info" : "warning"}>{response.citations.length ? "Source references available" : "Check against your sources"}</StatusBadge>} />
     <p className="resource-note">{response.provider && response.model ? `Generated with ${response.provider} / ${response.model}. ` : ""}{response.generated_at && <>Generated <time dateTime={response.generated_at}>{new Date(response.generated_at).toLocaleString()}</time>. </>}Verify study content before using it.</p>
     {response.notice && <p className="planner-notice" role="status">{response.notice}</p>}
     {response.grounding === "topic_context" && <p className="resource-note">AI knowledge using curriculum context. No uploaded source supports this response.</p>}

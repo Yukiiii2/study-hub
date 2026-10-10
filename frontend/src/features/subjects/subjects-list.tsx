@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { ApiError } from "@/services/api";
 import { getSubjects, type Subject } from "@/services/subjects";
 import { CurriculumError, CurriculumLoading } from "./load-state";
+import { PageHeader } from "@/components/page-header";
+import { SectionHeader } from "@/components/study-ui";
+import { InterfaceIcon } from "@/components/interface-icon";
 
 export function SubjectsList() {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
@@ -24,16 +27,17 @@ export function SubjectsList() {
   }, [retry]);
 
   return <>
-    <header className="page-heading"><h1>Subjects</h1><p>Your CPALE curriculum, organized by subject.</p></header>
+    <PageHeader title="Subjects" description="Your CPALE curriculum, organized by subject." />
     {error ? <CurriculumError message={error} retry={() => setRetry((value) => value + 1)} /> : subjects === null ? <CurriculumLoading /> : subjects.length === 0 ?
       <section className="curriculum-state"><h2>No subjects available</h2><p>Active subjects will appear here once curriculum setup is complete.</p></section> :
+      <section aria-labelledby="subject-directory-heading"><SectionHeader title="Your curriculum" titleId="subject-directory-heading" detail={`${subjects.length} ${subjects.length === 1 ? "subject" : "subjects"}`} />
       <ul className="subject-list" aria-label="Subjects">{subjects.map((subject) => <li key={subject.id}>
         <Link href={`/subjects/${subject.id}`} className="subject-row">
           <span className="subject-marker" data-color={subject.color_key ?? undefined} aria-hidden="true" />
           <span className="subject-code">{subject.code}</span>
           <span className="subject-name">{subject.name}</span>
-          <span className="subject-open" aria-hidden="true">›</span>
+          <span className="subject-open"><InterfaceIcon name="next" /></span>
         </Link>
-      </li>)}</ul>}
+      </li>)}</ul></section>}
   </>;
 }

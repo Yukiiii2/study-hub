@@ -8,6 +8,8 @@ import { getSubjectVideos, setVideoProgress, type SubjectVideos, type VideoStatu
 import { CurriculumLoading, CurriculumError } from "@/features/subjects/load-state";
 import { flattenTopics } from "@/features/subjects/hierarchy";
 import { formatDuration } from "./duration";
+import { PageHeader } from "@/components/page-header";
+import { ProgressMeter, SectionHeader, StatusBadge } from "@/components/study-ui";
 
 type PageData = { subject: Subject; topics: Topic[]; lectures: SubjectVideos };
 
@@ -66,28 +68,31 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
     <Link className="back-link" href={`/subjects/${subjectId}`}>Subject topics</Link>
     {error ? error.missing ? <section className="curriculum-state"><h1>Subject not found</h1><p role="alert">{error.message}</p><Link className="back-link" href="/subjects">All subjects</Link></section> :
       <CurriculumError message={error.message} retry={() => setRetry((value) => value + 1)} /> : data === null ? <CurriculumLoading /> : <>
-      <header className="page-heading subject-heading">
+      <div className="subject-overview">
         <span className="subject-marker" data-color={data.subject.color_key ?? undefined} aria-hidden="true" />
-        <div><h1>{data.subject.code} videos</h1><p>{data.subject.name}</p></div>
-      </header>
+        <PageHeader title={`${data.subject.code} videos`} description={data.subject.name} className="subject-heading" />
+      </div>
       <nav className="subject-sections" aria-label="Subject sections"><Link href={`/subjects/${subjectId}`}>Topics</Link><span aria-current="page">Videos</span></nav>
+      <section className="lecture-progress" aria-labelledby="lecture-progress-heading">
+      <SectionHeader title="Lecture progress" titleId="lecture-progress-heading" />
+      <ProgressMeter value={data.lectures.summary.completed_videos} total={data.lectures.summary.total_videos} label="Videos completed" />
       <dl className="video-summary" aria-label="Your lecture progress">
-        <div><dt>Videos completed</dt><dd>{data.lectures.summary.completed_videos} / {data.lectures.summary.total_videos}</dd></div>
         <div><dt>Completed lecture time</dt><dd>{formatDuration(data.lectures.summary.completed_duration_seconds)}</dd></div>
         <div><dt>Remaining lecture time</dt><dd>{formatDuration(data.lectures.summary.remaining_duration_seconds)}</dd></div>
       </dl>
       <p className="video-summary-note">Time is the duration of lectures marked complete, rather than measured study time. Durations use h:mm:ss or m:ss.</p>
       {data.lectures.summary.unknown_duration_videos > 0 && <p className="video-summary-note">{data.lectures.summary.unknown_duration_videos} videos have no duration and are excluded from time totals.</p>}
+      </section>
       <p className="sr-only" role="status" aria-live="polite">{pending ? "Saving video status..." : notice}</p>
       {updateError && <div className="video-update-error"><p id="video-update-message" role="alert" className="auth-error">{updateError.message}</p><button className="secondary-button" disabled={pending !== null} onClick={() => setRetry((value) => value + 1)}>Reload videos</button></div>}
       {data.lectures.videos.length === 0 ? <section className="curriculum-state"><h2>No videos available</h2><p>No lectures are available for this subject yet. Its curriculum topics remain available.</p></section> :
         flattenTopics(data.topics).map(({ topic }) => {
           const videos = grouped.get(topic.id) ?? [];
           return <section key={topic.id} className="video-topic" aria-labelledby={`video-topic-${topic.id}`}>
-            <header className="video-topic-heading"><h2 id={`video-topic-${topic.id}`}><span className="topic-code">{topic.code}</span>{topic.title}</h2><span>{videos.length} {videos.length === 1 ? "video" : "videos"}</span></header>
+            <div className="video-topic-heading">{topic.code && <span className="topic-code">{topic.code}</span>}<SectionHeader title={topic.title} titleId={`video-topic-${topic.id}`} detail={`${videos.filter((video) => video.status === "completed").length} / ${videos.length} videos completed`} /></div>
             {videos.length === 0 ? <p className="video-empty-topic">No lectures are available for this topic.</p> : <ul className="video-list">
               {videos.map((video) => <li key={video.id} className="video-row" data-status={video.status}>
-                <div className="video-title"><h3>{video.title}</h3><span className="video-duration">{formatDuration(video.duration_seconds)}</span></div>
+                <div className="video-copy"><div className="video-title"><h3>{video.title}</h3></div><div className="video-row-meta"><span className="video-duration">{formatDuration(video.duration_seconds)}</span><StatusBadge tone={video.status === "completed" ? "success" : video.status === "in_progress" ? "info" : "neutral"}>{video.status === "completed" ? "Completed" : video.status === "in_progress" ? "In progress" : "Not started"}</StatusBadge></div></div>
                 <label className="video-progress-control"><span className="sr-only">Status for {video.title}</span>
                   <select value={video.status} disabled={pending !== null} aria-busy={pending === video.id} aria-describedby={updateError?.id === video.id ? "video-update-message" : undefined} onChange={(event) => void changeStatus(video.id, event.target.value as VideoStatus)}>
                     <option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="completed">Completed</option>

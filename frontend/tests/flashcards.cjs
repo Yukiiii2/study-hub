@@ -75,7 +75,7 @@ assert(retry.includes("Retry Good") && retry.includes("SYNTHETIC_BACK") && !retr
 const upcoming = render(RecallCardView, { card, revealed: true, busy: false, pending: null, reveal() {}, rate() {}, timezone: "Asia/Manila", allowReview: false });
 assert(!upcoming.includes(">Good<") && upcoming.includes("not due"), "Upcoming cards cannot be rated early");
 const summary = render(RecallSummary, { summary: { overdue: 4, due_today: 3, upcoming: 9 }, timezone: "America/Los_Angeles", asOf: card.next_review_at });
-assert(summary.includes("4 overdue") && summary.includes("3 due today") && summary.includes("9 upcoming") && summary.includes("America/Los_Angeles") && summary.includes("Oct 8, 2026, 5:00 PM"));
+assert(summary.includes("<dt>Overdue</dt><dd>4</dd>") && summary.includes("<dt>Due today</dt><dd>3</dd>") && summary.includes("<dt>Upcoming</dt><dd>9</dd>") && summary.includes("America/Los_Angeles") && summary.includes("Oct 8, 2026, 5:00 PM"));
 const editor = render(CardEditor, { close() {}, saved() {} });
 assert(editor.includes("<dialog") && editor.includes('maxLength="5000"') && editor.includes('maxLength="12000"') && editor.includes("Save flashcard"));
 assert(render(DeckEditor, { close() {}, saved() {} }).includes("Save deck"));

@@ -126,3 +126,16 @@ At small widths:
 Before creating a new component pattern, check whether an existing project pattern already solves the problem.
 
 Do not redesign unrelated surfaces during feature work.
+
+
+## Shared presentation rules
+
+- Use `PageHeader` and `SectionHeader` to keep heading/action spacing consistent.
+- Use semantic `StatusBadge` tones with meaningful text; never infer a business status from color.
+- Use `ProgressMeter` only with real provided counts; omit its bar for a zero total.
+- Prefer grouped lists for management and quieter reading surfaces for active study.
+- Keep source text, answers and descriptions within readable line lengths, wrapping long content.
+- Keep Account identity inside its disclosure rather than prominently showing a full email in the header.
+- Settings must expose only supported account/workspace information.
+- Stack secondary panels and form fields before content becomes cramped; preserve native dialog focus and keyboard access.
+- Preserve visible answer/recall gating and every existing save, retry, confirmation and recovery action.

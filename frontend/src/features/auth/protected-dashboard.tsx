@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { AccountMenu } from "@/components/account-menu";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "./auth-provider";
 import { getSupabaseBrowserClient } from "./supabase";
@@ -49,12 +50,7 @@ export function ProtectedApp({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppShell utility={<div className="account-utility">
-      <span className="account-email">{user.email || "Signed in"}</span>
-      <button className="secondary-button" onClick={signOut} disabled={signingOut}>
-        {signingOut ? "Signing out..." : "Sign out"}
-      </button>
-    </div>}>
+    <AppShell utility={<AccountMenu email={user.email} signingOut={signingOut} signOut={() => void signOut()} />}>
       {(error || signOutError) && <div className="auth-actions">
         <p className="auth-error" role="alert">{error || signOutError}</p>
         {error && <button className="secondary-button" onClick={retry}>Retry connection</button>}

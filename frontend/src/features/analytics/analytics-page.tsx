@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { useCallback, useState } from "react";
 import { getAnalytics, getAnalyticsSessions, type AnalyticsRange } from "@/services/analytics";
 import { activityTypes } from "@/services/study-plan";
@@ -26,7 +27,7 @@ export function AnalyticsPage() {
   const plannedMaximum = data ? Math.max(data.summary.total_seconds, data.summary.planned_seconds) : 0;
   const chooseRange = (next: AnalyticsRange) => { setRange(next); setOffset(0); setDateError(null); };
   return <>
-    <header className="page-heading resource-heading"><div><h1>Analytics</h1><p>Compare completed study time with your plan.</p></div><div className="resource-actions"><Link href="/focus" className="secondary-button">Open Focus</Link><button type="button" className="secondary-button" disabled={busy} onClick={() => { summary.retry(); history.retry(); }}>Refresh</button></div></header>
+    <PageHeader title="Analytics" description="Compare completed study time with your plan." actions={<><Link href="/focus" className="secondary-button">Open Focus</Link><button type="button" className="ghost-button" disabled={busy} onClick={() => { summary.retry(); history.retry(); }}>Refresh</button></>} />
     <div className="study-periods ui-toolbar" aria-label="Analytics period">
       {([7, 30, 90] as const).map((period) => <button type="button" key={period} className="secondary-button" aria-pressed={!custom && "period" in range && range.period === period} onClick={() => { setCustom(false); chooseRange({ period }); }}>Last {period} days</button>)}
       <button type="button" className="secondary-button" aria-pressed={custom} onClick={() => { setCustom(true); setStart(data?.start_date ?? ""); setEnd(data?.end_date ?? ""); }}>Custom range</button>
@@ -37,7 +38,7 @@ export function AnalyticsPage() {
     {data && <div className="analytics-report" aria-busy={summary.loading}>
       <p className="resource-note">{dateLabel(data.start_date, { month: "short", day: "numeric", year: "numeric" })} – {dateLabel(data.end_date, { month: "short", day: "numeric", year: "numeric" })} · {data.timezone}. Only finished sessions count. Times use h:mm:ss.</p>
       <dl className="study-time-metrics ui-metrics analytics-summary"><div><dt>Completed study time</dt><dd>{studyDuration(data.summary.total_seconds)}</dd></div><div><dt>Sessions</dt><dd>{data.summary.session_count}</dd></div><div><dt>Active days</dt><dd>{data.summary.active_days}</dd></div><div><dt>Average session</dt><dd>{studyDuration(data.summary.average_session_seconds)}</dd></div><div><dt>Longest session</dt><dd>{studyDuration(data.summary.longest_session_seconds)}</dd></div></dl>
-      {data.summary.session_count === 0 && <p className="resource-note">No completed study sessions in this range. <Link className="quiz-text-link" href="/focus">Start a session in Focus</Link> to record your time.</p>}
+      {data.summary.session_count === 0 && <div className="resource-empty"><h2>No completed sessions in this range</h2><p><Link className="quiz-text-link" href="/focus">Start a session in Focus</Link> to record your time.</p></div>}
       <div className="analytics-layout">
         <section className="study-time-section ui-panel analytics-section-wide" aria-labelledby="analytics-daily"><header className="ui-section-heading"><h2 id="analytics-daily">Daily study time</h2></header><DailyChart daily={data.daily} /></section>
         <section className="study-time-section ui-panel analytics-section-wide analytics-plan" aria-labelledby="analytics-plan"><header className="ui-section-heading"><h2 id="analytics-plan">Planned versus actual</h2></header><TimeBar label="Planned" seconds={data.summary.planned_seconds} maximum={plannedMaximum} planned /><TimeBar label="Actual" seconds={data.summary.total_seconds} maximum={plannedMaximum} /><p className="resource-note">Planned event time and completed session time are independent totals. Unscheduled task estimates are excluded.</p></section>

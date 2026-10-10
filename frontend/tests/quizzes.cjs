@@ -40,10 +40,10 @@ const attempt = { id: "a1", quiz_id: "quiz1", title: "Synthetic quiz", status: "
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 const taking = render(AttemptQuestionView, { attempt, question, selected: ["B"], change() {}, busy: false });
 assert(taking.includes('type="radio"') && taking.includes("&lt;script&gt;question&lt;/script&gt;"));
-assert(!taking.includes("PRIVATE_EXPLANATION") && !taking.includes("Correct answer:"), "Answer-key projection must remain hidden before completion, even on an unexpected payload");
+assert(!taking.includes("PRIVATE_EXPLANATION") && !taking.includes("Correct answer") && !taking.includes("data-result="), "Answer-key projection must remain hidden before completion, even on an unexpected payload");
 assert.equal(reviewQuestion(attempt, question), null);
 const review = render(AttemptQuestionView, { attempt: { ...attempt, status: "completed" }, question, selected: ["B"], change() {}, busy: false });
-assert(review.includes("Correct answer: A") && review.includes("PRIVATE_EXPLANATION") && review.includes("Incorrect") && review.includes("disabled="));
+assert(/<dt>Correct answer:<\/dt><dd>A<\/dd>/.test(review) && review.includes("PRIVATE_EXPLANATION") && review.includes("Incorrect") && review.includes("disabled="));
 assert(review.includes('href="/library/source1"') && review.includes("Page 2"));
 assert(render(AttemptQuestionView, { attempt, question: { ...question, question_type: "multi_select" }, selected: [], change() {}, busy: false }).includes('type="checkbox"'));
 assert(render(QuizAttemptPage, { attemptId: "a1" }).includes('role="status"'));
@@ -52,7 +52,7 @@ const failedSave = withStates(QuizAttemptPage, { attemptId: "a1" }, [attempt, fa
 assert(failedSave.includes("Refresh failed") && failedSave.includes("Save failed") && failedSave.includes("Unsaved answer") && failedSave.includes("Synthetic first"));
 assert(!failedSave.includes("Answer saved") && !failedSave.includes("PRIVATE_EXPLANATION"), "A failed write retains draft and never reports saved or reveals grading");
 const completed = withStates(QuizAttemptPage, { attemptId: "a1" }, [{ ...attempt, status: "completed", score_value: 0, score_percent: 0 }, false, null, 0, 0, ["B"], false, null, false]);
-assert(completed.includes("0%") && completed.includes("0 correct out of 1") && completed.includes("Correct answer: A") && !completed.includes("Submit quiz"));
+assert(completed.includes("0%") && completed.includes("0 correct out of 1") && /<dt>Correct answer:<\/dt><dd>A<\/dd>/.test(completed) && !completed.includes("Submit quiz"));
 const restored = withStates(QuizAttemptPage, { attemptId: "a1" }, [attempt, false, null, 0, 0, ["A"], false, null, false, true]);
 assert(restored.includes("Unsaved answer restored") && restored.includes("Unsaved answer"));
 const noRecovery = withStates(QuizAttemptPage, { attemptId: "a1" }, [attempt, false, null, 0, 0, ["A"], false, null, false, false, true]);

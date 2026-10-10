@@ -14,6 +14,7 @@ function load(file) {
   const output = { exports: {} }; modules.set(file, output);
   const local = (name) => {
     if (name === "react") return reactShim;
+    if (name === "@/features/auth/auth-provider") return { useAuth: () => ({ user: { id: "test-owner", email: "reviewer@example.test" } }) };
     if (name === "next/link") return { default: ({ children, ...props }) => React.createElement("a", props, children) };
     if (name === "next/navigation") return { useRouter: () => ({ push: () => {} }) };
     if (name === "@/services/api" || name === "./api") return { ApiError: class extends Error {} };
@@ -76,3 +77,15 @@ const { ResourceLibrary } = load(path.join(src, "features/resources/resource-lib
 const library = renderToStaticMarkup(React.createElement(ResourceLibrary));
 assert(library.includes("All types") && library.includes("All subjects") && library.includes('type="search"') && library.includes('role="status"'));
 console.log("PASS: resource states, retained data, timezone, pagination, escaped PDF/CSV previews and upload limits");
+
+const { SettingsPage } = load(path.join(src, "features/settings/settings-page.tsx"));
+function settings(states) {
+  stateOverrides = states; stateIndex = 0;
+  try { return renderToStaticMarkup(React.createElement(SettingsPage)); } finally { stateOverrides = null; }
+}
+const settingsKnown = settings(["Asia/Taipei", false, 0]);
+assert(settingsKnown.includes("reviewer@example.test") && settingsKnown.includes("Asia/Taipei"));
+assert(!settingsKnown.includes("<input") && !settingsKnown.includes("<select"), "Read-only Settings must not invent preference controls");
+const settingsFallback = settings([null, true, 0]);
+assert(settingsFallback.includes("until your profile timezone is available") && settingsFallback.includes("Retry timezone"));
+console.log("PASS: read-only Settings account/profile timezone, labeled fallback and retry state");

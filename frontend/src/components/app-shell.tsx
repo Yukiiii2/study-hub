@@ -6,23 +6,24 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { InterfaceIcon, type IconName } from "@/components/interface-icon";
 
 const navigationGroups: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
-  { label: "Workspace", items: [
-    { href: "/", label: "Dashboard", icon: "dashboard" },
+  { label: "Overview", items: [{ href: "/", label: "Dashboard", icon: "dashboard" }] },
+  { label: "Study", items: [
     { href: "/study-plan", label: "Study Plan", icon: "calendar" },
     { href: "/focus", label: "Focus", icon: "focus" },
-  ] },
-  { label: "Study tools", items: [
     { href: "/subjects", label: "Subjects", icon: "subjects" },
-    { href: "/library", label: "Library", icon: "library" },
-    { href: "/quizzes", label: "Quizzes", icon: "quizzes" },
+  ] },
+  { label: "Practice", items: [
     { href: "/recall", label: "Recall", icon: "recall" },
     { href: "/flashcards", label: "Flashcards", icon: "flashcards" },
+    { href: "/quizzes", label: "Quizzes", icon: "quizzes" },
     { href: "/assessments", label: "Assessments", icon: "assessments" },
   ] },
-  { label: "Insights", items: [
-    { href: "/analytics", label: "Analytics", icon: "analytics" },
+  { label: "Resources", items: [
+    { href: "/library", label: "Library", icon: "library" },
     { href: "/assistant", label: "Study assistant", icon: "assistant" },
   ] },
+  { label: "Insights", items: [{ href: "/analytics", label: "Analytics", icon: "analytics" }] },
+  { label: "System", items: [{ href: "/settings", label: "Settings", icon: "settings" }] },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -63,13 +64,12 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
       <aside className="sidebar" aria-label="Study Hub sidebar">
         <div className="workspace-brand"><Link href="/" className="brand"><span className="brand-mark"><InterfaceIcon name="subjects" /></span><span>Study Hub<span className="brand-subtitle">CPALE review workspace</span></span></Link></div>
         <Navigation />
-        <p className="sidebar-caption">A place for focused study.</p>
       </aside>
       <div className="workspace">
         <header className="utility-header">
           <div className="desktop-context"><Link href="/">Workspace</Link><span aria-hidden="true">/</span><span>{currentTitle}</span></div>
           <Link className="mobile-brand" href="/"><InterfaceIcon name="subjects" />Study Hub</Link>
-          {utility ?? <span className="phase-label">Study workspace</span>}
+          <div className="top-bar-actions">{pathname !== "/focus" && <Link href="/focus" className="ghost-button"><InterfaceIcon name="focus" />Focus</Link>}{utility ?? <span className="phase-label">Study workspace</span>}</div>
         </header>
         <details ref={navigation} className="mobile-navigation" onKeyDown={(event) => {
           if (event.key === "Escape" && navigation.current?.open) {

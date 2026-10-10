@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
+import { LoadingNotice } from "@/components/study-ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/features/auth/auth-provider";
 import { Associations, LoadNotice, useQuizLoad } from "@/features/quizzes/shared";
@@ -67,8 +69,8 @@ export function AssistantWorkspace({ initial }: { initial: AssistantInitial }) {
     } catch (failure) { if (!request.signal.aborted && gate.current.current(ticket)) setError(aiError(failure)); }
     finally { if (gate.current.current(ticket)) { gate.current.finish(ticket); controller.current = null; setBusy(false); } }
   }
-  return <><header className="page-heading"><h1>Study assistant</h1><p>Ask about a source, or prepare a few study drafts to review and save.</p></header>
-    <form className="assistant-form" onSubmit={(event) => { event.preventDefault(); void generate(); }}><fieldset disabled={busy} className="planner-form-grid">
+  return <><PageHeader title="Study assistant" description="Ask about a source, or prepare a few study drafts to review and save." />
+    <div className="assistant-workspace"><form className="assistant-form" onSubmit={(event) => { event.preventDefault(); void generate(); }}><fieldset disabled={busy} className="planner-form-grid">
       <label className="planner-wide">Study task<select value={mode} onChange={(event) => { clearPreview(); const next = event.target.value as AIMode; setMode(next); setCount(next === "cards" ? 5 : 3); if (next !== "cards") setSnapshot(null); }}><option value="ask">Ask or summarize</option><option value="quiz">Generate question drafts</option><option value="cards">Generate flashcard drafts</option></select></label>
       {snapshot ? <div className="planner-wide"><p className="resource-note">Using the saved completed quiz mistake. The service checks the original answer and source.</p><button type="button" className="secondary-button" onClick={() => { clearPreview(); setSnapshot(null); }}>Choose other study context</button></div> : <>
         <Associations subject={subject} topic={topic} disabled={busy} changeSubject={(id) => { clearPreview(); setSubject(id); setResource(""); setOffset(0); }} changeTopic={(id) => { clearPreview(); setTopic(id); setResource(""); }} />
@@ -82,10 +84,11 @@ export function AssistantWorkspace({ initial }: { initial: AssistantInitial }) {
     </fieldset><p className="resource-note">Changing the task or context clears the preview. Generating again replaces unsaved drafts after a successful response. Nothing is kept after you leave this page.</p>
       <button className="primary-button" disabled={busy || !resourceReady || !!resource && (selected.loading || !!selected.error)}>{busy ? "Preparing response…" : mode === "ask" ? "Ask assistant" : "Generate preview"}</button>
     </form>
-    {busy && <p className="resource-note" role="status">Preparing AI study assistance. This can take up to 30 seconds.</p>}
+    <div className="assistant-output" aria-label="Study assistant results">{busy && <LoadingNotice>Preparing AI study assistance. This can take up to 30 seconds.</LoadingNotice>}
     {error && <p className="auth-error" role="alert">{error}</p>}
     {result && ("answer" in result || result.insufficient_context || !preview) && <AIResponseView response={result} />}
     {preview && <AIDraftPreview key={previewRevision} response={preview} disabled={busy} />}
-    {!result && !preview && <p className="resource-note">Choose a subject, topic or ready PDF to begin. Topic context uses AI knowledge; source-backed responses include quotes and page references.</p>}
+    {!result && !preview && <section className="assistant-welcome"><h2>Study with your sources</h2><p>Choose a subject, topic or ready PDF to begin. Topic context uses AI knowledge; source-backed responses include quotes and page references.</p><dl><div><dt>Ask or summarize</dt><dd>Clarify a concept or review source material.</dd></div><div><dt>Prepare study drafts</dt><dd>Review and edit every question or card before saving.</dd></div></dl></section>}
+    </div></div>
   </>;
 }

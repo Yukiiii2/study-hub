@@ -5,6 +5,7 @@ import { dateLabel, zonedParts } from "@/features/study-plan/dates";
 import { formatDuration } from "@/features/videos/duration";
 import { PageHeader } from "@/components/page-header";
 import { SummaryMetric } from "@/components/summary-metric";
+import { ProgressMeter, StatusBadge } from "@/components/study-ui";
 import { InterfaceIcon } from "@/components/interface-icon";
 
 type Props = { data: DashboardData | null; refreshing: boolean; error: string | null; onRefresh: () => void };
@@ -60,7 +61,7 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
             <div className="dashboard-item-copy"><h3>{task.title}</h3><p>{task.subject_code ?? "General study"}{task.topic_title && ` · ${task.topic_title}`}{task.estimated_minutes && ` · ${task.estimated_minutes} min planned`}</p></div>
             <div className="dashboard-task-due">{task.due_at ? <>
               <time dateTime={task.due_at}>{new Intl.DateTimeFormat("en", { timeZone: data.timezone, year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(task.due_at))}</time>
-              {new Date(task.due_at) < new Date(data.generated_at) && <span className="dashboard-overdue">Overdue</span>}
+              {new Date(task.due_at) < new Date(data.generated_at) && <StatusBadge tone="danger">Overdue</StatusBadge>}
             </> : <span>No due date</span>}</div>
           </li>)}</ul>}
       </section>
@@ -75,7 +76,7 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
 
       <section className="dashboard-section dashboard-videos ui-panel" aria-labelledby="dashboard-videos">
         <header className="dashboard-section-heading ui-section-heading"><h2 id="dashboard-videos">Video progress</h2>{videoPath && <Link href={videoPath}>Videos</Link>}</header>
-        <dl className="dashboard-video-counts ui-metrics">
+        <ProgressMeter value={summary!.completed_videos} total={summary!.total_videos} label="Lectures completed" tone="info" /><dl className="dashboard-video-counts ui-metrics">
           <div><dt>Videos completed</dt><dd>{summary!.completed_videos}</dd></div>
           <div><dt>Total videos</dt><dd>{summary!.total_videos}</dd></div>
           <div><dt>Remaining</dt><dd>{summary!.remaining_videos}</dd></div>
@@ -96,7 +97,7 @@ export function DashboardView({ data, refreshing, error, onRefresh }: Props) {
           <ul className="dashboard-subject-list">{data.subjects.map((subject) => <li className="dashboard-subject" key={subject.id}>
             <span className="subject-marker" data-color={subject.color_key ?? undefined} aria-hidden="true" />
             <div className="dashboard-subject-copy"><Link href={`/subjects/${encodeURIComponent(subject.id)}`}><strong>{subject.code}</strong><span>{subject.name}</span></Link></div>
-            <div className="dashboard-subject-counts"><span>{subject.topic_count} {subject.topic_count === 1 ? "topic" : "topics"}</span><span>{subject.completed_video_count} / {subject.video_count} videos completed</span></div>
+            <div className="dashboard-subject-counts"><ProgressMeter value={subject.completed_video_count} total={subject.video_count} label={`${subject.code} videos completed`} tone="info" /><span>{subject.topic_count} {subject.topic_count === 1 ? "topic" : "topics"}</span></div>
             <Link className="dashboard-subject-video" href={`/subjects/${encodeURIComponent(subject.id)}/videos`} aria-label={`Browse ${subject.code} videos`}>Videos</Link>
           </li>)}</ul>}
       </section>

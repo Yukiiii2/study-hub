@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh";
+export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh" | "settings";
 
 const paths: Record<IconName, string> = {
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
@@ -17,6 +17,7 @@ const paths: Record<IconName, string> = {
   previous: "M15 6l-6 6 6 6",
   next: "M9 6l6 6-6 6",
   plus: "M12 5v14 M5 12h14",
+  settings: "M4 7h16 M4 17h16 M8 4v6 M16 14v6",
   refresh: "M20 10a8 8 0 0 0-14-4L3 9 M3 4v5h5 M4 14a8 8 0 0 0 14 4l3-3 M21 20v-5h-5",
 };
 

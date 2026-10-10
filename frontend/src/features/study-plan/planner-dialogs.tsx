@@ -103,7 +103,7 @@ export function EventDialog({ event, task, date, time = "09:00", timezone, subje
   }
 
   return <Dialog title={event ? "Study event" : task ? "Schedule task" : "New study event"} busy={busy || switching} close={close}>
-    <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
+    <form className="study-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
       {recurringOccurrence && <label className="planner-scope">Apply changes to<select value={scope} disabled={busy} onChange={(event) => void changeScope(event.target.value as "occurrence" | "series")}><option value="occurrence">Only this occurrence ({event.occurrence_date})</option><option value="series">Entire recurring series</option></select></label>}
       {event?.recurrence_rule && !recurringOccurrence && <p className="planner-note">Editing the entire recurring series. Open a calendar occurrence to change only that date or start a linked session.</p>}
       {switching && <p role="status">Loading the series…</p>}
@@ -158,7 +158,7 @@ export function TaskDialog({ task, timezone, subjects, saved, close }: { task?: 
     setBusy(true); setError(null);
     try { await deleteTask(task!.id); saved(); close(); } catch (error) { setError(plannerError(error)); } finally { setBusy(false); }
   }
-  return <Dialog title={task ? "Edit study task" : "New study task"} busy={busy} close={close}><form onSubmit={(event) => { event.preventDefault(); void save(); }}><fieldset className="planner-form-grid" disabled={busy}>
+  return <Dialog title={task ? "Edit study task" : "New study task"} busy={busy} close={close}><form className="study-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}><fieldset className="planner-form-grid" disabled={busy}>
     <label className="planner-wide">Title<input autoFocus required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
     <Associations subjects={subjects} subject={subject} topic={topic} onSubject={(value) => { setSubject(value); setTopic(""); }} onTopic={setTopic} {...topicState} />
     <label>Type<select value={type} onChange={(event) => setType(event.target.value as EventType)}>{eventTypes.map((value) => <option key={value} value={value}>{value === "general" ? "General study" : value[0].toUpperCase() + value.slice(1)}</option>)}</select></label>

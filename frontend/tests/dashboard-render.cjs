@@ -57,7 +57,8 @@ for (const id of ["far-id", "afar-id"]) {
   assert(empty.includes(`href="/subjects/${id}"`));
   assert(empty.includes(`href="/subjects/${id}/videos"`));
 }
-assert(empty.includes("3 topics") && empty.includes("2 / 4 videos completed"));
+assert(empty.includes("3 topics"));
+assert.match(empty, /<progress value="2" max="4" aria-label="FAR videos completed"/, "Subject meter must show provided completed and total video counts");
 assert(empty.includes("1:40") && empty.includes("1:50"), "Lecture time must format backend known totals");
 assert(empty.includes("1 video without a duration"));
 assert(empty.includes('href="/subjects/afar-id/videos"') && empty.includes("Continue Videos"));
@@ -81,3 +82,6 @@ assert(failure.includes('role="alert"') && !failure.includes("Videos completed")
 const completed = render({ ...data, continue_video_subject_id: null });
 assert(completed.includes("Browse Videos") && !completed.includes("Continue Videos"));
 console.log("PASS: dashboard loading/empty/error/refresh, timezone/status, real count/time rendering, and implemented-route links");
+
+const noLectures = render({ ...data, video_summary: { total_videos: 0, completed_videos: 0, remaining_videos: 0, completed_duration_seconds: 0, remaining_duration_seconds: 0, unknown_duration_videos: 0 }, subjects: [] });
+assert(!/<progress[^>]+aria-label="Lectures completed"/.test(noLectures), "Unavailable lecture total must not show a fabricated progress bar");

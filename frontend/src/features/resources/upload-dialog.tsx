@@ -34,11 +34,11 @@ export function UploadDialog({ subjects, close, saved }: { subjects: Subject[]; 
     catch (error) { setError(resourceError(error)); }
     finally { setBusy(false); }
   }
-  return <dialog ref={dialog} className="planner-dialog resource-upload" aria-labelledby="resource-upload-title" onCancel={(event) => { event.preventDefault(); if (!busy) close(); }}>
+  return <dialog ref={dialog} className="planner-dialog resource-upload" aria-labelledby="resource-upload-title" aria-describedby="resource-upload-guidance" onCancel={(event) => { event.preventDefault(); if (!busy) close(); }}>
     <div className="planner-dialog-heading"><h2 id="resource-upload-title">Upload resource</h2><button type="button" className="secondary-button" onClick={close} disabled={busy}>Close</button></div>
-    <p className="resource-note">Text-based PDF or CSV, up to 4 MiB. Scanned PDFs cannot be processed.</p>
+    <p id="resource-upload-guidance" className="resource-note resource-upload-guidance">Text-based PDF or CSV, up to 4 MiB. Scanned PDFs cannot be processed.</p>
     <form onSubmit={(event) => { event.preventDefault(); void upload(); }}><fieldset disabled={busy} className="planner-form-grid">
-      <label className="planner-wide">File<input autoFocus required type="file" accept=".pdf,.csv,application/pdf,text/csv" onChange={(event) => { const next = event.target.files?.[0] ?? null; setFile(next); setError(next ? uploadFileError(next) : null); }} /></label>
+      <label className="planner-wide resource-upload-file">File<input autoFocus required type="file" aria-describedby="resource-upload-guidance" accept=".pdf,.csv,application/pdf,text/csv" onChange={(event) => { const next = event.target.files?.[0] ?? null; setFile(next); setError(next ? uploadFileError(next) : null); }} /></label>
       <label className="planner-wide">Title (optional)<input maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
       <label>Subject (optional)<select value={subject} onChange={(event) => { setSubject(event.target.value); setTopic(""); }}><option value="">No subject</option>{subjects.map((value) => <option key={value.id} value={value.id}>{value.code} — {value.name}</option>)}</select></label>
       <label>Topic (optional)<select value={topic} disabled={!subject || loadingTopics || topicError} onChange={(event) => setTopic(event.target.value)}><option value="">{loadingTopics ? "Loading topics…" : "No topic"}</option>{current?.topics.map((value) => <option key={value.id} value={value.id}>{value.code ? `${value.code} — ` : ""}{value.title}</option>)}</select></label>

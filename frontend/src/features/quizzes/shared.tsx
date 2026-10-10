@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { getSubjects, getSubjectTopics, type Subject, type Topic } from "@/services/subjects";
 import { getResources, type Resource } from "@/services/resources";
+import { LoadingNotice } from "@/components/study-ui";
 import { quizError } from "@/services/quizzes";
 
 export function useQuizLoad<T>(loader: (signal: AbortSignal) => Promise<T>) {
@@ -17,7 +18,7 @@ export function useQuizLoad<T>(loader: (signal: AbortSignal) => Promise<T>) {
   return { data, setData, loading, error, retry: () => setRevision((value) => value + 1) };
 }
 export function LoadNotice({ loading, error, retry }: { loading: boolean; error: string | null; retry: () => void }) {
-  return <>{loading && <p className="resource-note" role="status">Loading study data…</p>}{error && <div className="resource-error"><p className="auth-error" role="alert">{error}</p><button type="button" className="secondary-button" onClick={retry}>Try again</button></div>}</>;
+  return <>{loading && <LoadingNotice />}{error && <div className="resource-error"><p className="auth-error" role="alert">{error}</p><button type="button" className="secondary-button" onClick={retry}>Try again</button></div>}</>;
 }
 export function Pagination({ offset, total, change, busy = false }: { offset: number; total: number; change: (offset: number) => void; busy?: boolean }) {
   return <nav className="resource-pagination" aria-label="Study data pagination"><span>{total ? `${offset + 1}–${Math.min(offset + 20, total)} of ${total}` : "0 results"}</span><button type="button" className="secondary-button" disabled={busy || !offset} onClick={() => change(Math.max(0, offset - 20))}>Previous</button><button type="button" className="secondary-button" disabled={busy || offset + 20 >= total} onClick={() => change(offset + 20)}>Next</button></nav>;

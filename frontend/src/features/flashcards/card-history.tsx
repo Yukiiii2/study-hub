@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusBadge } from "@/components/study-ui";
 import { useCallback, useState } from "react";
 import { getCardReviews, type Card, type CardReview } from "@/services/flashcards";
 import { useResourceTimezone as useFlashcardTimezone } from "@/features/resources/use-resource-timezone";
@@ -7,7 +8,7 @@ import { LoadNotice, Pagination, QuizDialog, useQuizLoad } from "@/features/quiz
 import { flashcardTimestamp, ratingLabel } from "./review-state";
 
 export function CardHistoryView({ reviews, timezone }: { reviews: CardReview[]; timezone: string }) {
-  return <>{!reviews.length && <p className="resource-note">No reviews yet.</p>}<ol className="flashcard-history-list">{reviews.map((review) => <li key={review.id}><div className="flashcard-history-meta"><strong>{ratingLabel(review.rating)}</strong><time dateTime={review.reviewed_at}>{flashcardTimestamp(review.reviewed_at, timezone)}</time><span>{review.previous_interval_days} → {review.next_interval_days} days</span></div><p className="resource-note">Next review: {flashcardTimestamp(review.next_review_at, timezone)} · Algorithm {review.algorithm_version}</p><details><summary>Content at review</summary><p className="flashcard-text">{review.front_snapshot}</p><p className="flashcard-text">{review.back_snapshot}</p></details></li>)}</ol></>;
+  return <>{!reviews.length && <div className="resource-empty"><h3>No reviews yet</h3><p>Ratings saved during Recall will appear here with their next review date.</p></div>}<ol className="flashcard-history-list">{reviews.map((review) => <li key={review.id}><div className="flashcard-history-meta"><StatusBadge tone={review.rating === "again" ? "danger" : review.rating === "hard" ? "warning" : "success"}>{ratingLabel(review.rating)}</StatusBadge><time dateTime={review.reviewed_at}>{flashcardTimestamp(review.reviewed_at, timezone)}</time><span>{review.previous_interval_days} → {review.next_interval_days} days</span></div><p className="resource-note">Next review: {flashcardTimestamp(review.next_review_at, timezone)} · Algorithm {review.algorithm_version}</p><details><summary>Content at review</summary><p className="flashcard-text">{review.front_snapshot}</p><p className="flashcard-text">{review.back_snapshot}</p></details></li>)}</ol></>;
 }
 export function CardHistory({ card, close }: { card: Card; close: () => void }) {
   const [offset, setOffset] = useState(0);

@@ -6,6 +6,8 @@ import { getResources, resourceError, type ResourceList } from "@/services/resou
 import { ResourceError, ResourceListView } from "./resource-views";
 import { UploadDialog } from "./upload-dialog";
 import { useResourceTimezone } from "./use-resource-timezone";
+import { PageHeader } from "@/components/page-header";
+import { InterfaceIcon } from "@/components/interface-icon";
 
 const limit = 20;
 export function ResourceLibrary() {
@@ -33,10 +35,10 @@ export function ResourceLibrary() {
   }, [filters, retry]);
   const shownFilters = loaded?.filters ?? filters;
   return <>
-    <header className="page-heading resource-heading"><div><h1>Library</h1><p>Your study sources, organized by subject and topic.</p></div><button type="button" className="primary-button" disabled={!subjects} onClick={() => { setNotice(null); setUpload(true); }}>Upload resource</button></header>
+    <PageHeader title="Library" description="Your study sources, organized by subject and topic." className="resource-heading" actions={<button type="button" className="primary-button" disabled={!subjects} onClick={() => { setNotice(null); setUpload(true); }}><InterfaceIcon name="plus" />Upload resource</button>} />
     {notice && <p className="planner-notice" role="status">{notice}</p>}
     {subjectError && <ResourceError message="Could not load subjects. Retry to upload or filter by subject." retry={() => setSubjectRetry((value) => value + 1)} />}
-    <form className="resource-filters" onSubmit={(event) => { event.preventDefault(); setFilters((current) => ({ ...current, q: search.trim(), offset: 0 })); }}>
+    <form className="resource-filters ui-panel" aria-label="Find resources" onSubmit={(event) => { event.preventDefault(); setFilters((current) => ({ ...current, q: search.trim(), offset: 0 })); }}>
       <label className="resource-search">Search<input type="search" maxLength={200} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Title or filename" /></label>
       <label>Type<select value={filters.resource_type} onChange={(event) => setFilters((current) => ({ ...current, resource_type: event.target.value, offset: 0 }))}><option value="">All types</option><option value="pdf">PDF</option><option value="csv">CSV</option></select></label>
       <label>Subject<select disabled={!subjects} value={filters.subject_id} onChange={(event) => setFilters((current) => ({ ...current, subject_id: event.target.value, offset: 0 }))}><option value="">All subjects</option>{subjects?.map((subject) => <option key={subject.id} value={subject.id}>{subject.code}</option>)}</select></label><button className="secondary-button">Search</button>

@@ -11,6 +11,7 @@ export function DailyChart({ daily }: { daily: DailyActivity[] }) {
     <div className="study-chart-scale"><span>{studyDuration(maximum === 1 && !daily.some((day) => day.duration_seconds) ? 0 : maximum)}</span><span>Completed study time</span></div>
     <svg className="study-daily-chart" viewBox="0 0 800 180" role="img" aria-label={`Daily completed study time, ${daily.length} days. Exact values are available in Daily values.`}>
       <line x1="20" y1="160" x2="780" y2="160" className="study-chart-baseline" />
+      <polygon points={`20,160 ${daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} 780,160`} className="study-chart-area" />
       <polyline points={daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} fill="none" className="study-chart-line" />
       {daily.map((day, index) => <circle key={day.date} cx={x(index)} cy={y(day.duration_seconds)} r={daily.length <= 30 ? 3 : 2} className="study-chart-point"><title>{`${day.date}: ${studyDuration(day.duration_seconds)}, ${day.session_count} sessions`}</title></circle>)}
     </svg>

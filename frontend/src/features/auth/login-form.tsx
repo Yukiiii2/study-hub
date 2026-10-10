@@ -1,5 +1,6 @@
 "use client";
 
+import { InterfaceIcon } from "@/components/interface-icon";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "./auth-provider";
@@ -42,7 +43,7 @@ export function LoginForm() {
   return (
     <main className="auth-page">
       <section className="auth-panel" aria-labelledby="login-title">
-        <p className="brand">Study Hub</p>
+        <div className="auth-brand"><span className="brand-mark"><InterfaceIcon name="subjects" /></span><span>Study Hub<span className="brand-subtitle">CPALE review workspace</span></span></div>
         <h1 id="login-title">Sign in to your workspace</h1>
         <p className="auth-description">Continue your CPALE review.</p>
         <form onSubmit={signIn} className="auth-form">
