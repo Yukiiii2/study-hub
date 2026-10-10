@@ -4,6 +4,8 @@ Study Hub is a private CPALE study workspace for planning study, tracking lectur
 
 The application consists of an independent **Next.js frontend** and **FastAPI backend**. Supabase provides Auth, PostgreSQL and private Storage; Gemini provides optional study assistance through the backend. Application data and business rules pass through FastAPI. The browser uses Supabase directly only for authentication.
 
+Production: [study-hub-theta-ashy.vercel.app](https://study-hub-theta-ashy.vercel.app). One repository-root Vercel Services project serves Next.js pages and FastAPI `/api/*` on the same domain; production leaves `NEXT_PUBLIC_API_URL` unset.
+
 ## Implemented features
 
 - Email/password sign-in, persistent sessions, protected pages and sign-out.
@@ -31,7 +33,7 @@ data/imports/       Local ignored sources and reviewed safe reports
 scripts/            Explicit verification utilities
 ```
 
-Read [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries and [DEPLOYMENT.md](DEPLOYMENT.md) for the two-project Vercel workflow. No production deployment URL is recorded in this repository.
+Read [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries and [DEPLOYMENT.md](DEPLOYMENT.md) for the single-project Vercel Services workflow and live verification results.
 
 ## Prerequisites
 
@@ -92,7 +94,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 
 Use current `sb_publishable_...` and `sb_secret_...` keys. The application does not use legacy anon/service-role variable names. Database and AI credentials stay backend-only. Obtain the connection URL from Supabase's Connect panel, URL-encode password characters and require TLS for hosted connections. Use a privileged direct or session-pooler connection for migrations; select an appropriate runtime connection as described in [DEPLOYMENT.md](DEPLOYMENT.md).
 
-Backend settings load `backend/.env`; process environment takes precedence. Restart the backend after changes. Restart/rebuild the frontend after public environment changes. Production CORS must contain exact trusted frontend origins, comma-separated; wildcards are rejected. The root `.env.example` is only a pointer and requires no root `.env`.
+Backend settings load `backend/.env`; process environment takes precedence. Restart the backend after changes. Restart/rebuild the frontend after public environment changes. Production uses same-origin `/api/*` requests with `NEXT_PUBLIC_API_URL` unset. CORS can be empty for same-origin-only production or contain exact trusted origins, comma-separated; wildcards are rejected. The root `.env.example` is only a pointer and requires no root `.env`.
 
 ## Database, Storage and accounts
 

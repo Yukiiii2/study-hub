@@ -24,9 +24,10 @@ function fixture(options = {}) {
   const output = { exports: {} };
   vm.runInNewContext(code, {
     module: output, exports: output.exports, Error, Promise, FormData,
-    require: (name) => name.includes("supabase") ? { getSupabaseBrowserClient: () => ({ auth }) } : { config: { apiUrl: "http://example.test" } },
-    fetch: async (_url, init) => {
+    require: (name) => name.includes("supabase") ? { getSupabaseBrowserClient: () => ({ auth }) } : { config: { apiUrl: options.apiUrl ?? "http://example.test" } },
+    fetch: async (url, init) => {
       requests++;
+      options.inspectUrl?.(url);
       options.inspect?.(init);
       if (options.switchAccount) session = { access_token: "other-token", user: { id: "user-b" } };
       const rejected = options.rejectAll || init.headers.Authorization === "Bearer old-token";
@@ -38,6 +39,11 @@ function fixture(options = {}) {
 let passed = 0;
 async function check(name, run) { await run(); passed++; console.log(`PASS: ${name}`); }
 (async () => {
+  await check("same-origin API requests preserve bearer authentication", async () => {
+    const test = fixture({ apiUrl: "", inspectUrl: (url) => assert.equal(url, "/api/auth/me"), inspect: (init) => assert.match(init.headers.Authorization, /^Bearer /) });
+    await test.api.authenticatedGet("/api/auth/me");
+    assert.equal(test.counts().requests, 2);
+  });
   await check("multipart retries preserve the file body and browser boundary", async () => {
     const body = new FormData(); body.append("title", "Source notes");
     const bodies = [];

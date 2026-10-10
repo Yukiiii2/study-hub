@@ -37,7 +37,9 @@ Use conventional HTTP statuses. Do not leak secrets or raw internal stack traces
 
 Phases 1–6.5 implement `/health`, `/api/auth/me`, subject/topic reads, video reads/progress, owner-scoped planner APIs and a read-only dashboard summary documented below. Other routes remain future contract directions.
 
-### GET /health
+### GET /health and GET /api/health
+
+`/api/health` is the same public health response under the production backend service routing prefix. The original `/health` remains available locally.
 
 Response:
 

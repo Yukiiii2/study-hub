@@ -1,11 +1,7 @@
 import { config } from "@/lib/config";
 
 export async function getHealth(signal?: AbortSignal): Promise<{ status: "ok" }> {
-  if (!config.apiUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured.");
-  }
-
-  const response = await fetch(`${config.apiUrl}/health`, {
+  const response = await fetch(`${config.apiUrl}/api/health`, {
     cache: "no-store",
     signal,
   });

@@ -25,7 +25,6 @@ export async function authenticatedDelete(path: string, signal?: AbortSignal): P
 }
 
 async function authenticatedRequest<T>(path: string, method: "GET" | "PATCH" | "POST" | "DELETE", body?: unknown, signal?: AbortSignal): Promise<T> {
-  if (!config.apiUrl) throw new ApiError("The study service is not configured.", 503);
   const auth = getSupabaseBrowserClient().auth;
   const session = await currentSession();
   const multipart = typeof FormData !== "undefined" && body instanceof FormData;

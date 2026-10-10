@@ -2,7 +2,7 @@
 
 Study Hub provides the implemented study workspace described in [README.md](../README.md). The frontend and backend remain independent applications; Supabase is the persistent source of identity, structured records and private files. This document records ownership and operating limits for the current implementation, with migrations through **`0010_ai_provenance`**.
 
-No production frontend/backend URL or Vercel project link is recorded. Follow [DEPLOYMENT.md](../DEPLOYMENT.md) to provision or connect the actual hosting projects and verify production; do not infer deployment from a passing local build or health response.
+Production runs at [study-hub-theta-ashy.vercel.app](https://study-hub-theta-ashy.vercel.app) in the linked `earls-projects-4247e9fe/study-hub` Vercel project. Next.js pages and FastAPI `/api/*` routes share that domain. See [DEPLOYMENT.md](../DEPLOYMENT.md) for live verification results and the remaining owner browser checklist.
 
 ## Responsibilities and service boundary
 
@@ -40,7 +40,7 @@ Configure the same Supabase project on both applications. Real values belong in 
 
 | Frontend variable (`frontend/.env.local`) | Value/purpose |
 | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8001` locally; actual public backend origin in production. |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8001` locally; unset/empty in production for same-origin `/api/*`. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Actual Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Current `sb_publishable_...` key; public browser Auth configuration. |
 
@@ -53,7 +53,7 @@ Configure the same Supabase project on both applications. Real values belong in 
 | `GEMINI_MODEL` | Explicit supported `gemini-...` model identifier; required for live AI. |
 | `CORS_ORIGINS` | Exact trusted frontend origins, comma-separated; locally `http://localhost:3000,http://localhost:3001`. |
 
-There are **three frontend and six backend application variables**. No separate AI signing secret is required. Legacy anon/service-role variable names are not used. Missing Gemini settings disable AI with sanitized errors. Missing Supabase/database settings leave `/health` available but do not make protected features usable. Restart backend processes after changes; rebuild/redeploy the frontend for production public-variable changes.
+There are **two required public production variables**, an optional/local API-origin override, and six backend application variables in one Vercel Services project. No separate AI signing secret is required. Legacy anon/service-role variable names are not used. Missing Gemini settings disable AI with sanitized errors. Missing Supabase/database settings leave `/health` available but do not make protected features usable. Restart backend processes after changes; rebuild/redeploy the frontend for production public-variable changes.
 
 Use frontend **3001** and backend **8001** locally. **8000 is reserved for the separate F1 project; do not stop, start or reconfigure it.** Windows commands and prerequisites are in [README.md](../README.md).
 
