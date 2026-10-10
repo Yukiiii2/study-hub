@@ -33,7 +33,7 @@ function Navigation() {
   const pathname = usePathname();
   return (
     <nav aria-label="Main navigation">
-      {navigationGroups.map((group) => <div className="nav-group" key={group.label}>
+      {navigationGroups.map((group) => <div className="nav-group" role="group" aria-label={group.label} key={group.label}>
         <p className="nav-group-label">{group.label}</p>
         {group.items.map((item) => {
           const active = isActive(pathname, item.href);
@@ -71,7 +71,13 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
           <Link className="mobile-brand" href="/">Study Hub</Link>
           {utility ?? <span className="phase-label">Study workspace</span>}
         </header>
-        <details ref={navigation} className="mobile-navigation">
+        <details ref={navigation} className="mobile-navigation" onKeyDown={(event) => {
+          if (event.key === "Escape" && navigation.current?.open) {
+            event.preventDefault();
+            navigation.current.open = false;
+            navigation.current.querySelector("summary")?.focus();
+          }
+        }}>
           <summary>Navigation</summary>
           <Navigation />
         </details>

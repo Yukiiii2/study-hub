@@ -1,4 +1,4 @@
-/* Shared controls and composition primitives. Domain rules remain in globals.css. */
+/* Shared controls and composition primitives. Domain rules live in application.css. */
 html { scrollbar-color: var(--border) var(--background); scroll-padding-top: 24px; }
 button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 input, textarea { caret-color: var(--accent); }
@@ -21,6 +21,31 @@ textarea { resize: vertical; }
 input:disabled, select:disabled, textarea:disabled { opacity: .6; cursor: not-allowed; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 summary { border-radius: var(--radius-sm); }
+input[type="file"] { overflow: hidden; }
+input[type="file"]::file-selector-button {
+  min-height: var(--control-height); margin-right: var(--space-3); padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--foreground); font: inherit; cursor: pointer;
+}
+input[type="file"]:not(:disabled)::file-selector-button:hover { background: var(--surface-hover); }
+.mobile-navigation[open] > summary { color: var(--accent-hover); }
+.resource-row:focus-visible, .planner-event:focus-visible, .planner-date-button:focus-visible, .planner-time-add:focus-visible { outline-offset: -3px; }
+.section-heading, .flashcard-section-heading, .video-topic-heading { flex-wrap: wrap; }
+.section-heading h2, .flashcard-section-heading h2, .video-topic-heading h2 { min-width: 0; overflow-wrap: anywhere; }
+.page-heading p, .planner-note, .resource-note, .resource-pagination > span { overflow-wrap: anywhere; }
+.resource-filters > label { flex: 1 1 160px; }
+.resource-filters > .resource-search { flex: 2 1 240px; }
+.study-chart-scale { flex-wrap: wrap; }
+.study-time-bar > span, .study-time-bar > strong { overflow-wrap: anywhere; }
+.study-heatmap-day > button { width: 100%; height: 100%; padding: 0; border: 0; border-radius: inherit; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.study-heatmap-day > button:focus-visible { outline-offset: -3px; }
+.study-heatmap-day > button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -3px; }
+.study-heatmap-selection { min-height: 3.3em; font-variant-numeric: tabular-nums; }
+.study-planner { container: study-planner / inline-size; }
+@container study-planner (max-width: 700px) {
+  .planner-calendar { display: none; }
+  .planner-mobile-agenda { display: block; }
+}
 
 .ui-panel { min-width: 0; padding: var(--space-6); background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-panel); }
 .ui-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
@@ -116,6 +141,7 @@ summary { border-radius: var(--radius-sm); }
   .analytics-layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea { font-size: var(--text-input); }
   .mobile-navigation nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
   .mobile-navigation .nav-group { align-content: start; margin-top: 0; }
   .mobile-brand { display: inline-flex; }
@@ -123,6 +149,13 @@ summary { border-radius: var(--radius-sm); }
   .dashboard-actions { justify-content: flex-start; }
 }
 @media (max-width: 700px) {
+  .resource-row, .subject-row { padding-inline: var(--space-4); }
+  .resource-metadata, .assessment-section, .assistant-form, .assistant-response, .assistant-preview { padding: var(--space-5); }
+  .resource-actions > button, .resource-actions > a { flex: 1 1 auto; }
+  .planner-dialog-actions > button { flex: 1 1 160px; }
+  .planner-today-row { align-items: stretch; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); }
+  .planner-today-row > .secondary-button { align-self: flex-start; }
+  .assessment-history-heading { flex-wrap: wrap; }
   .subject-list, .focus-sidebar { grid-template-columns: minmax(0, 1fr); }
   .mobile-navigation nav { grid-template-columns: minmax(0, 1fr); }
   .mobile-navigation .nav-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -134,11 +167,20 @@ summary { border-radius: var(--radius-sm); }
   .dashboard-subject { padding-block: var(--space-5); }
 }
 @media (max-width: 400px) {
+  .resource-filters > label, .resource-filters > .flashcard-deck-selector { flex-basis: 100%; }
+  .dashboard-video-counts.ui-metrics { grid-template-columns: minmax(0, 1fr); }
+  .subject-row, .topic-row { padding-right: var(--space-4); }
+  .assistant-drafts { padding-left: var(--space-4); }
   .analytics-summary { grid-template-columns: minmax(0, 1fr); }
   .mobile-navigation .nav-group { grid-template-columns: minmax(0, 1fr); }
   .dashboard-section-heading { flex-wrap: wrap; }
   .dashboard-event { grid-template-columns: 60px 4px minmax(0, 1fr); }
   .resource-filters { padding: var(--space-4); }
+}
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea { font-size: var(--text-input); }
+  .study-heatmap { grid-template-rows: repeat(7, var(--control-height)); grid-auto-columns: var(--control-height); }
+  .study-heatmap-day { font-size: var(--text-label); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; scroll-behavior: auto !important; }

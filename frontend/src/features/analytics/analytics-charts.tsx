@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { dateLabel, weekday } from "@/features/study-plan/dates";
 import type { DailyActivity } from "@/services/analytics";
 import { studyDuration } from "./presentation";
@@ -19,18 +20,22 @@ export function DailyChart({ daily }: { daily: DailyActivity[] }) {
 }
 
 export function CalendarHeatmap({ daily }: { daily: DailyActivity[] }) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const selected = daily.find((day) => day.date === selectedDate);
+  const activityLabel = (day: DailyActivity) => `${dateLabel(day.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}: ${studyDuration(day.duration_seconds)}, ${day.session_count} completed sessions`;
   const maximum = Math.max(0, ...daily.map((day) => day.duration_seconds));
   const offset = daily.length ? (weekday(daily[0].date) + 6) % 7 : 0;
   return <>
-    <p className="resource-note">Each column is a week, Monday to Sunday. Focus a date for its recorded time.</p>
+    <p className="resource-note">Each column is a week, Monday to Sunday. Select or focus a date for its recorded time.</p>
     <ul className="study-heatmap" aria-label="Daily completed study activity, Monday to Sunday in each column">
       {Array.from({ length: offset }, (_, index) => <li key={`blank-${index}`} className="study-heatmap-spacer" aria-hidden="true" />)}
       {daily.map((day) => {
         const level = day.duration_seconds === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil(day.duration_seconds / maximum * 4)));
-        const label = `${dateLabel(day.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}: ${studyDuration(day.duration_seconds)}, ${day.session_count} completed sessions`;
-        return <li key={day.date} className="study-heatmap-day" data-level={level} tabIndex={0} aria-label={label} title={label}><span className="sr-only">{label}</span><span aria-hidden="true">{Number(day.date.slice(8))}</span></li>;
+        const label = activityLabel(day);
+        return <li key={day.date} className="study-heatmap-day" data-level={level}><button type="button" aria-label={label} aria-pressed={selectedDate === day.date} title={label} onFocus={() => setSelectedDate(day.date)} onClick={() => setSelectedDate(day.date)}>{Number(day.date.slice(8))}</button></li>;
       })}
     </ul>
+    <p className="study-heatmap-selection resource-note">{selected ? activityLabel(selected) : "Select a date to see its study time and sessions."}</p>
     <p className="resource-note">Empty cells mean zero recorded time. Darker to lighter cells show less to more time within this range.</p>
   </>;
 }

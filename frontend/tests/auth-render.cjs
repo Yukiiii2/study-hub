@@ -8,6 +8,7 @@ const { renderToStaticMarkup } = require("react-dom/server");
 const ts = require("typescript");
 const src = path.join(__dirname, "../src");
 let state, pathname = "/", redirects = [];
+let mobileNavigationProps;
 const router = { replace: (path) => redirects.push(path) };
 const modules = new Map();
 function load(file) {
@@ -17,6 +18,14 @@ function load(file) {
     if (name === "./auth-provider") return { useAuth: () => state };
     if (name === "./supabase") return { getSupabaseBrowserClient: () => { throw Error("Unexpected SDK call during render"); } };
     if (name === "react") return { ...React, useEffect: (effect) => effect() };
+    if (name === "react/jsx-runtime") {
+      const runtime = require(name);
+      const capture = (create) => (type, props, ...args) => {
+        if (type === "details" && props.className === "mobile-navigation") mobileNavigationProps = props;
+        return create(type, props, ...args);
+      };
+      return { ...runtime, jsx: capture(runtime.jsx), jsxs: capture(runtime.jsxs) };
+    }
     if (name === "next/navigation") return { useRouter: () => router, usePathname: () => pathname };
     if (name === "next/link") return { default: ({ children, ...props }) => React.createElement("a", props, children) };
     if (name.startsWith("@/")) return load(path.join(src, name.slice(2) + ".tsx"));
@@ -47,7 +56,17 @@ const refreshing = render({ loading: false, session: { ...session, access_token:
 assert(refreshing.includes("app-shell") && !refreshing.includes("auth-bootstrap"));
 const offline = render({ loading: false, session, user, error: "Connection unavailable" });
 assert(offline.includes("Current page content") && offline.includes("Retry connection"));
+assert(offline.includes('role="group" aria-label="Workspace"'));
+let focused = false, prevented = false;
+const menu = { open: true, querySelector: () => ({ focus: () => { focused = true; } }) };
+mobileNavigationProps.ref.current = menu;
+mobileNavigationProps.onKeyDown({ key: "Enter", preventDefault: () => { prevented = true; } });
+assert.equal(menu.open, true, "Other keys preserve native navigation behavior");
+mobileNavigationProps.onKeyDown({ key: "Escape", preventDefault: () => { prevented = true; } });
+assert.equal(menu.open, false, "Escape closes the mobile navigation");
+assert(focused && prevented, "Escape restores focus to the navigation disclosure");
 assert(!render({ loading: false, session: null, user: null, error: null }).includes("Current page content"));
 assert.deepEqual(redirects, ["/login"]);
 console.log("PASS: guard renders protected content only after bootstrap, retains shell on refresh/offline, redirects signed-out users");
 console.log("PASS: Dashboard/Subjects/Study Plan/Videos guard rendering across repeated route changes");
+console.log("PASS: mobile navigation Escape dismissal, focus return and named navigation groups");
