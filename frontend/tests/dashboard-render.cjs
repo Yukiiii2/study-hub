@@ -46,6 +46,8 @@ function render(next = data, extra = {}) {
   return renderToStaticMarkup(React.createElement(DashboardView, { data: next, refreshing: false, error: null, onRefresh: () => {}, ...extra }));
 }
 const empty = render();
+assert(empty.includes('aria-label="Study overview"'));
+assert(empty.indexOf('aria-label="Study overview"') < empty.indexOf('id="dashboard-today"'), "Real-data summaries precede the detailed study plan");
 assert(empty.includes("No study events today") && empty.includes("No pending tasks"));
 assert(empty.indexOf('id="dashboard-today"') < empty.indexOf('id="dashboard-tasks"'));
 assert(empty.indexOf('id="dashboard-tasks"') < empty.indexOf('id="dashboard-videos"'));
@@ -74,6 +76,7 @@ assert(/<time dateTime="2027-10-07T01:00:00Z">[^<]*2027/.test(futureTask), "Task
 assert(render(data, { refreshing: true }).includes("3 topics"), "Background dashboard refresh must retain loaded data");
 assert(render(data, { error: "Service unavailable" }).includes("3 topics"), "Refresh error must retain loaded data");
 const failure = render(null, { error: "Service unavailable" });
+assert(!failure.includes('aria-label="Study overview"'), "Unavailable dashboard data must not render zero summary cards");
 assert(failure.includes('role="alert"') && !failure.includes("Videos completed"), "Unavailable data must not display invented zero metrics");
 const completed = render({ ...data, continue_video_subject_id: null });
 assert(completed.includes("Browse Videos") && !completed.includes("Continue Videos"));

@@ -214,7 +214,7 @@ Medium-high. Show useful study information without clutter.
 
 ## Implemented frontend design system
 
-The existing application uses Geist with charcoal surfaces and a muted mint accent.
+The application uses Geist with a deep slate canvas, sage actions and soft neutral text.
 Keep this system consistent when refining or adding frontend views:
 
 - `frontend/src/styles/tokens.css` owns semantic colors, spacing, typography, radii and control sizes.
@@ -225,6 +225,16 @@ Keep this system consistent when refining or adding frontend views:
 Use the existing `ui-panel`, `ui-toolbar`, `ui-section-heading` and `ui-metrics`
 patterns before introducing another surface or layout variant. Navigation icons
 come from `InterfaceIcon`; labels remain visible and active routes use `aria-current`.
+Dashboard and Study Plan share `PageHeader` and `SummaryMetric`; summary values
+come from existing responses or counts of the currently loaded lists. Loading or
+failed event requests show an unavailable value rather than a fabricated zero.
+
+The canvas is `#0B1114`, sidebar `#10191D`, cards `#132026` and raised controls
+`#1D2D34`. Primary text is `#F3F7F5`, secondary text `#B9C7C1` and quiet metadata
+`#8A9A93`. Sage `#7FB69B` identifies primary actions; `#93C8AE` provides hover
+contrast. Warm `#D9C27A` highlights recall/task summaries. Soft 8% white borders
+and layered surfaces provide separation without decorative gradients or heavy shadows.
+Primary, secondary, ghost and danger buttons retain distinct semantic treatments.
 
 Spacing follows 4, 8, 12, 16, 20, 24, 32, 40 and 48 pixels. Controls use an
 8-pixel radius, panels 12 pixels, and dialogs 16 pixels. Buttons and form controls

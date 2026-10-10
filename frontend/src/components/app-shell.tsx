@@ -61,14 +61,14 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="sidebar" aria-label="Study Hub sidebar">
-        <Link href="/" className="brand"><span className="brand-mark"><InterfaceIcon name="subjects" /></span>Study Hub</Link>
-        <p className="workspace-label">CPALE workspace</p>
+        <div className="workspace-brand"><Link href="/" className="brand"><span className="brand-mark"><InterfaceIcon name="subjects" /></span><span>Study Hub<span className="brand-subtitle">CPALE review workspace</span></span></Link></div>
         <Navigation />
+        <p className="sidebar-caption">A place for focused study.</p>
       </aside>
       <div className="workspace">
         <header className="utility-header">
           <div className="desktop-context"><Link href="/">Workspace</Link><span aria-hidden="true">/</span><span>{currentTitle}</span></div>
-          <Link className="mobile-brand" href="/">Study Hub</Link>
+          <Link className="mobile-brand" href="/"><InterfaceIcon name="subjects" />Study Hub</Link>
           {utility ?? <span className="phase-label">Study workspace</span>}
         </header>
         <details ref={navigation} className="mobile-navigation" onKeyDown={(event) => {
