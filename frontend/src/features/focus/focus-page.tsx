@@ -117,7 +117,7 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
         {active ? <>
           <p className="resource-note">{activeSubject?.code ?? (active.subject_id ? "Subject selected" : "No subject")}{activeTopic ? ` — ${activeTopic.title}` : ""} · {active.activity_type}{active.study_event_id && " · Linked to a planned event"}</p>
           <div className="focus-timer" role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>
-          <p className="resource-note">Started <time dateTime={active.started_at}>{new Intl.DateTimeFormat("en", { timeZone: snapshot.data.timezone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(active.started_at))}</time>. Finishing saves the server-measured duration.</p>
+          <p className="resource-note">Started <time dateTime={active.started_at}>{new Intl.DateTimeFormat("en", { timeZone: snapshot.data.timezone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(active.started_at))}</time>. Finish the session to save its recorded duration.</p>
           <button type="button" className="primary-button" disabled={busy || refreshing} onClick={() => void act(true)}>{busy ? "Finishing…" : "Finish session"}</button>
         </> : <form className="quiz-builder-form" onSubmit={(value) => { value.preventDefault(); void act(false); }}>
           <fieldset className="planner-form-grid" disabled={busy || refreshing}>

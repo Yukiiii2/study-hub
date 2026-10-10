@@ -6,7 +6,7 @@ import { useAuth } from "./auth-provider";
 import { getSupabaseBrowserClient } from "./supabase";
 
 export function LoginForm() {
-  const { session, loading, error: setupError } = useAuth();
+  const { session, loading, error: setupError, retry } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +51,7 @@ export function LoginForm() {
           <label htmlFor="password">Password</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required disabled={submitting} />
           {(setupError || error) && <p className="auth-error" role="alert">{setupError || error}</p>}
+          {setupError && <button className="secondary-button" type="button" disabled={loading || submitting} onClick={retry}>Retry connection</button>}
           <button className="primary-button" type="submit" disabled={loading || submitting || Boolean(setupError)}>
             {loading ? "Restoring session..." : submitting ? "Signing in..." : "Sign in"}
           </button>

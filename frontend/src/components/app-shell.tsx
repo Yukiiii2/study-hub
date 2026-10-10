@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-
-const plannedAreas = [
-  "Settings",
-];
+import { useEffect, useRef, type ReactNode } from "react";
 
 function Navigation() {
   const pathname = usePathname();
@@ -44,19 +40,20 @@ function Navigation() {
       </Link>
       <Link className={`nav-link${pathname === "/analytics" ? " active" : ""}`} href="/analytics" aria-current={pathname === "/analytics" ? "page" : undefined}>Analytics</Link>
       <Link className={`nav-link${pathname === "/assistant" ? " active" : ""}`} href="/assistant" aria-current={pathname === "/assistant" ? "page" : undefined}>Study assistant</Link>
-      <p className="nav-caption">Planned areas</p>
-      <ul className="planned-nav" aria-label="Planned areas">
-        {plannedAreas.map((label) => (
-          <li key={label}>
-            <span className="nav-link" aria-disabled="true">{label}</span>
-          </li>
-        ))}
-      </ul>
     </nav>
   );
 }
 
 export function AppShell({ children, utility }: { children: ReactNode; utility?: ReactNode }) {
+  const pathname = usePathname();
+  const navigation = useRef<HTMLDetailsElement>(null);
+  const content = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (navigation.current?.open) {
+      navigation.current.open = false;
+      content.current?.focus();
+    }
+  }, [pathname]);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -72,11 +69,11 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
           <Link className="mobile-brand" href="/">Study Hub</Link>
           {utility ?? <span className="phase-label">Study workspace</span>}
         </header>
-        <details className="mobile-navigation">
+        <details ref={navigation} className="mobile-navigation">
           <summary>Navigation</summary>
           <Navigation />
         </details>
-        <main id="main-content" tabIndex={-1} className="main-content">
+        <main ref={content} id="main-content" tabIndex={-1} className="main-content">
           {children}
         </main>
       </div>

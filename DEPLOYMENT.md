@@ -1,193 +1,176 @@
-# DEPLOYMENT.md
+﻿# Deployment
 
-## Phase 12 AI configuration
+Study Hub uses two independent Vercel projects from the same repository and the
+existing Supabase project. Deployment does not run database migrations or import
+the personal workbook. No production URLs are recorded until deployments exist.
 
-Set GEMINI_API_KEY and GEMINI_MODEL only in backend runtime configuration
-(locally backend/.env). Examples remain blank. Choose an accessible Gemini text
-model supporting structured JSON from the
-[provider catalog](https://ai.google.dev/gemini-api/docs/models). Never expose an
-AI key through NEXT_PUBLIC variables. Apply additive 0010_ai_provenance first.
-Missing provider settings return sanitized 503 while existing features work.
-Configure provider/project quotas as the external hard cost boundary; in-process
-limits reset and do not coordinate multiple workers. Selected passages leave
-Study Hub only after an authenticated user explicitly requests AI assistance.
-No paid provider project or deployment is provisioned. Generation has a 30-second
-deadline/no retries; workers and distributed quotas remain separate future work.
+## Environment checklist
 
-## Target deployment
+Set these in the **frontend** Vercel project for the intended environment:
 
-### Frontend
+| Variable | Value to configure |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | Actual HTTPS backend deployment origin, without `/api` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Existing Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Current publishable key from that project |
 
-- platform: Vercel
-- framework: Next.js
-- project root: `frontend/`
+Set these only in the **backend** Vercel project:
 
-### Backend
+| Variable | Value to configure |
+| --- | --- |
+| `SUPABASE_URL` | Same existing Supabase project URL |
+| `SUPABASE_SECRET_KEY` | Current backend secret key |
+| `DATABASE_URL` | TLS-enabled PostgreSQL connection string; URL-encode password characters |
+| `CORS_ORIGINS` | Comma-separated exact permitted frontend origins |
+| `GEMINI_API_KEY` | Existing Gemini provider key |
+| `GEMINI_MODEL` | Explicit accessible Gemini model supporting structured JSON output |
 
-- platform: Vercel
-- framework: FastAPI
-- project root: `backend/`
+Do not substitute legacy anon/service-role variables. A current Supabase secret
+key is an `apikey`, not a bearer JWT. Requests to Study Hub still carry the
+authenticated user's bearer token. Never put backend variables in `NEXT_PUBLIC_*`.
+Changing public Next.js variables requires a new frontend build/deployment.
 
-### Data services
+Local values belong only in Git-ignored `frontend/.env.local` and `backend/.env`.
+Keep `.env.example` files blank. Local configuration is independent of production:
 
-- Supabase PostgreSQL
-- Supabase Auth
-- Supabase Storage
+```dotenv
+# frontend/.env.local (public local API origin only)
+NEXT_PUBLIC_API_URL=http://localhost:8001
 
-## Topology
-
-```text
-Vercel frontend
-  |
-  | HTTPS
-  v
-Vercel FastAPI backend
-  |
-  +--> Supabase PostgreSQL
-  +--> Supabase Storage
-  +--> AI provider
+# backend/.env (local origins only)
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-## Environment variables
+`CORS_ORIGINS` is split on commas and whitespace is trimmed. Wildcards are
+rejected. Production should list only the required deployed frontend origin(s),
+not localhost or every Vercel preview. CORS does not replace authentication.
 
-### Frontend
+## 1. Verify existing Supabase services
 
-```text
-NEXT_PUBLIC_API_URL=
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+1. Confirm the backend and frontend refer to the same existing project. Do not
+   create or reset a project as part of deployment.
+2. Review and apply pending additive migrations from `backend/`, using a
+   privileged migration connection with the required Auth/Storage schema access:
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m alembic current
+   .\.venv\Scripts\python.exe -m alembic upgrade head
+   .\.venv\Scripts\python.exe -m alembic current
+   ```
+
+   Current application head is `0010_ai_provenance`. Review future migrations
+   before applying them; never reset, downgrade or truncate production data.
+   Startup does not migrate automatically.
+3. Use the Connect panel's direct/session-pooler URL for migrations. A compatible
+   transaction-pooler URL is suitable for the serverless runtime. Include TLS
+   (`sslmode=require`) for hosted Supabase. SQLAlchemy uses `NullPool`; Psycopg
+   prepared statements are disabled for pooler compatibility.
+4. Confirm Auth email/password sign-in and the intended client account. There is
+   no public sign-up UI; account provisioning is an owner responsibility. After
+   frontend deployment, set Supabase Auth Site URL and any required redirect
+   allowlist to actual approved frontend URLs.
+5. Verify the private resource bucket from `backend/`:
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m app.services.resource_storage
+   ```
+
+   This creates/verifies `study-resources` and rejects incompatible/public bucket
+   configuration. Reviewed migrations define owner-path plus matching resource
+   metadata read policies, with no browser mutation policies. Do not broaden
+   policies to work around a permissions failure.
+
+## 2. Deploy backend
+
+Use the owner's authenticated Vercel account and an existing authorized project,
+or have the owner create/configure the project. Import the existing Git repository
+and set **Root Directory: `backend`**, **Framework: FastAPI**. Configure the six
+backend variables above. Choose project/team names through the owner's account;
+this repository does not prescribe or fabricate them.
+
+Vercel detects the existing `app/main.py` top-level FastAPI `app` and installs
+`requirements.txt`. No catch-all adapter or route rewrite is required. Python
+3.13 is pinned in `.python-version` to match the validated local runtime. See
+[Vercel FastAPI support](https://vercel.com/docs/frameworks/backend/fastapi) and
+[Python runtime configuration](https://vercel.com/docs/functions/runtimes/python).
+
+Record the actual stable backend production URL and verify `GET /health` returns
+`{"status":"ok"}`. Deployment protection must permit normal requests from the
+intended frontend; interactive Vercel login protection on the API origin will
+block browser calls. Keep Study Hub bearer authentication enabled. Preview
+deployments need separately approved environment/origin/protection configuration;
+do not send previews to production data by default.
+
+Local Uvicorn remains unchanged:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8001
 ```
 
-Only truly public variables may use `NEXT_PUBLIC_`.
+Port 8000 belongs to a separate local project.
 
-### Backend
+## 3. Deploy frontend
 
-```text
-SUPABASE_URL=
-SUPABASE_SECRET_KEY=
-DATABASE_URL=
-GEMINI_API_KEY=
-CORS_ORIGINS=
-```
+Configure a separate project from the same repository with **Root Directory:
+`frontend`**, **Framework: Next.js**. Use the package lockfile and standard build:
+`npm ci`, then `npm run build`. Set all three public variables, using the actual
+backend production URL. Deploy and record the actual stable frontend URL.
 
-Never expose backend secrets to frontend code.
+Separate root directories keep deployment variables, builds and logs independent.
+See [Vercel monorepo project setup](https://vercel.com/docs/monorepos).
 
-## Local environment files
+## 4. Complete production CORS and smoke checks
 
-### Phase 2 Supabase preparation
+Set backend production `CORS_ORIGINS` to the exact deployed frontend origin and
+redeploy the backend. Update Supabase Auth URLs as described above. Verify from
+the deployed frontend, not just a local terminal:
 
-Use a configured Supabase project (hosted or an independently managed local Supabase instance). This phase does not create external resources. Obtain the project URL, publishable key, backend secret key, and PostgreSQL connection string from that project. Configure email/password Auth and create a confirmed test user through Authentication > Users; the application has no sign-up UI.
+- Sign in, reload/session restore, internal navigation, sign out, and logged-out
+  access denial.
+- Authenticated `/api/auth/me`, Dashboard and Subjects/Topics/Videos.
+- Planner events/tasks/recurrence/sessions; Library upload, content, download and
+  deletion; Question Bank/quiz attempt/save/submit/review.
+- Flashcards/Recall; Assessments; Focus reload/finish; Analytics periods/history.
+- Assistant resource Q&A/citations, quiz/card drafts and explicit save, and quiz
+  explanations. Never test with another user's resources.
+- Desktop, tablet and mobile layout, keyboard focus and dialogs.
 
-Use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the current publishable key and `SUPABASE_SECRET_KEY` for the current secret key. Legacy anon/service-role environment variables are not used. Never put a secret key or database URL in any public variable. The backend sends the secret key only as the Auth verification API's `apikey` header; the user's access token remains the bearer token. SQLAlchemy uses `DATABASE_URL` for database access. AI variables stay blank. Real local credentials belong only in the Git-ignored `frontend/.env.local` and `backend/.env` files.
+Use temporary synthetic fixtures and remove their files, records and accounts.
+Do not test by deleting client data. Check OPTIONS preflight allows the exact
+frontend origin and required bearer/content-type headers; reject other origins.
+Record remaining acceptance checks in [the handoff](docs/HANDOFF.md).
 
-Set `DATABASE_URL` using the Connect panel's direct or session-pooler connection for migrations, with URL-encoded password characters and TLS (`sslmode=require`) for hosted Supabase. Use the transaction pooler for a serverless runtime when appropriate. The backend uses Psycopg with prepared statements disabled and SQLAlchemy NullPool; Supabase handles pooling. Never copy example project IDs or invent connection credentials.
+## Runtime boundaries and maintenance
 
-Apply reviewed migrations from `backend/` with the virtual environment's `python -m alembic upgrade head`. This also seeds the seven CPA subjects and creates/backfills profiles. Use a privileged migration connection with access to the Auth schema and role grants. Runtime startup does not migrate; migration failure must be resolved before enabling database-backed endpoints. This is an initial additive schema migration, not a reset. Downgrade commands that would drop foundation data are blocked.
+Uploads accept PDF/CSV only, at most **4 MiB** of file content with a separately
+bounded multipart envelope. Resource content is paginated. This stays below
+Vercel's **4.5 MB request/response ceiling**; see
+[function limits](https://vercel.com/docs/functions/limitations). Preserve these
+bounds rather than increasing a local upload limit that cannot deploy reliably.
+Signed resource URLs expire after 120 seconds; treat them as temporary bearer
+access and do not log or persist them.
 
-Configure the frontend API URL and Supabase public values, and the backend Supabase/database values and exact CORS origins independently in their Vercel projects. Redeploy the frontend after public environment changes. Validate sign-in, reload/session persistence, `/api/auth/me`, subject browsing, and sign-out after migrations. Phase 2 Auth checks do not require Storage; Phase 7 Library setup is documented below. AI configuration remains deferred.
+PDF extraction is synchronous, bounded and isolated in a service. OCR and a
+background worker are not implemented. Large/long-running jobs require a
+separately approved worker/upload architecture, not an adapter rewrite.
 
-Expected:
+AI settings stay server-side. Missing configuration returns a sanitized 503
+without disabling the other domains. AI generation has a 30-second deadline and
+no automatic retries. Set Gemini project quotas/budgets as the external cost
+boundary: in-process rate limits do not coordinate multiple serverless instances.
+Selected document passages leave Study Hub only on an explicit authenticated AI
+request. See [AI.md](AI.md) for limits and saving rules.
 
-```text
-frontend/.env.local
-backend/.env
-```
+Review production logs without recording keys, passwords, bearer tokens, signed
+URLs or private document contents. Maintain separate database and Storage-file
+backups; database backups alone do not preserve Storage originals. Keep account,
+billing, recovery, backup and provider-quota ownership with the client. See
+[docs/HANDOFF.md](docs/HANDOFF.md) for maintenance and limitations.
 
-They must be Git-ignored.
+## Current deployment status
 
-Provide `.env.example` files with placeholder names only.
-
-## Vercel project separation
-
-Recommended:
-
-- one Vercel project rooted at `frontend/`
-- one Vercel project rooted at `backend/`
-
-This keeps builds, logs, variables, and deployments independent.
-
-## Backend considerations
-
-FastAPI is acceptable for the initial API on Vercel.
-
-Potential future limits:
-
-- large PDF processing
-- long AI generation
-- heavy background jobs
-
-If those become real limitations, move only long-running processing to a worker/service instead of rewriting the main backend.
-
-## CORS
-
-Allow local frontend origin during development.
-
-Production should allow only required deployed frontend origins.
-
-Avoid unrestricted wildcard CORS with authenticated production requests unless explicitly justified.
-
-## Storage
-
-Store uploaded files in Supabase Storage. Store metadata/reference in PostgreSQL.
-
-Do not store large PDF binary blobs in normal relational columns.
-
-### Phase 7 setup
-
-Apply reviewed revision `0005_resources` using the configured migration connection.
-Then, from `backend/`, run `python -m app.services.resource_storage` to create or verify the
-private `study-resources` bucket. Existing incompatible/public bucket configuration
-must fail closed; do not silently make uploaded files public. Storage policies are
-version-controlled in the migration: owner-path plus matching own metadata SELECT,
-no browser mutation policies. The backend uses the existing SUPABASE_URL and
-SUPABASE_SECRET_KEY with HTTPX; no frontend secret or new credentials are needed.
-
-Use current keys in the apikey header; a secret key is not a bearer JWT. Normal
-resource requests still authenticate using the user's Supabase bearer token.
-Download links expire after 120 seconds and must not be logged or persisted by
-the browser. A recipient holding a signed link can use it until expiry; deletion
-of the underlying object removes availability.
-
-Uploads are limited to 4 MiB (4,194,304 bytes), below Vercel's 4.5 MB request-body
-ceiling with room for multipart fields. The API separately bounds the multipart
-envelope. This intentionally supports smaller documents than a 25/50 MB local
-limit that would fail on the target runtime. See [Vercel limits](https://vercel.com/docs/functions/limitations).
-PDF extracted output and content responses must also remain bounded; content is
-paginated. Synchronous parsing stays in an isolated service; large/long-running
-documents require a separately approved worker/upload architecture later.
-
-No deployment is performed by Phase 7. If bucket creation or policy migration
-permissions are unavailable, configure this private bucket and apply the reviewed
-policies with project-admin access; do not broaden security to bypass the blocker.
-
-## Initial production workflow
-
-1. Push repository.
-2. Create/configure Supabase project.
-3. Apply migrations.
-4. Configure backend Vercel project.
-5. Set backend environment variables.
-6. Deploy backend.
-7. Configure frontend Vercel project.
-8. Set frontend variables including API URL.
-9. Deploy frontend.
-10. Update backend CORS as needed.
-11. Manually verify health/auth/basic API.
-
-## Deployment authorization
-
-Do not deploy automatically during ordinary feature work.
-
-A Codex phase may explicitly authorize deployment.
-
-If authorized:
-
-- do not invent credentials
-- use existing authenticated configuration only
-- do not destructively alter production data
-- report the result
-- if setup is missing, stop and state the exact required user action
-
-## Production safety
-
-Never drop/reset production tables or delete production storage without explicit approval.
+Production deployment has not been performed in this readiness pass: no Vercel
+CLI authentication, linked projects or accessible browser session were available.
+No production frontend/backend URLs are known. The owner must configure the two
+projects and their environment variables, then run the production smoke checks.
+Local verification is not a substitute for production/browser acceptance.

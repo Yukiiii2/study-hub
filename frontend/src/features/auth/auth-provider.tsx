@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active) verifier.fail("Sign-in service is unavailable. Try again.");
       });
     } catch {
-      verifier.fail("Sign-in is not configured. Set the public Supabase environment values.");
+      verifier.fail("Sign-in is not available for this workspace. Contact your workspace administrator.");
     }
     return () => { active = false; unsubscribe?.(); verifier.dispose(); verifierRef.current = null; };
   }, []);

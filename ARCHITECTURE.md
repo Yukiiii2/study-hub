@@ -1,284 +1,65 @@
-# ARCHITECTURE.md
+﻿# Study Hub architecture
 
-## Overview
+Study Hub preserves two separately runnable applications. Next.js owns the browser experience; FastAPI owns the authenticated application API and authoritative study logic. Supabase PostgreSQL is the structured-data source of truth, private Storage holds original resources, and Supabase Auth supplies identity.
 
-CPA Study Hub uses a separated frontend/backend architecture.
-
-```text
-Browser
-  |
-  v
-Next.js frontend
-  |
-  | HTTPS / REST
-  v
-FastAPI backend
-  |
-  +----------------------+----------------------+
-  |                      |                      |
-  v                      v                      v
-Supabase PostgreSQL   Supabase Storage      AI provider
-Supabase Auth
+```mermaid
+flowchart LR
+    User[User] --> Frontend[Next.js frontend]
+    Frontend -->|Sign-in and session refresh| Auth[Supabase Auth]
+    Frontend -->|HTTPS REST with bearer token| Backend[FastAPI backend]
+    Backend -->|Verify user identity| Auth
+    Backend --> DB[Supabase PostgreSQL]
+    Backend --> Storage[Private Supabase Storage]
+    Backend -->|Bounded server-side requests| Gemini[Gemini]
 ```
 
-## Repository structure
-
-```text
-cpa-study-hub/
-├── frontend/
-├── backend/
-├── docs/
-├── data/
-│   ├── imports/
-│   ├── templates/
-│   └── seed/
-├── scripts/
-├── AGENTS.md
-├── README.md
-├── .gitignore
-└── .env.example
-```
-
-## Frontend
-
-Technology:
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Lucide React
-- Recharts when charts are actually implemented
-
-Responsibilities:
-
-- routing
-- UI
-- forms
-- accessibility
-- browser state
-- API client
-- auth session UI
-- visualization
-
-Proposed feature folders:
-
-```text
-frontend/src/features/
-├── dashboard/
-├── calendar/
-├── subjects/
-├── topics/
-├── videos/
-├── resources/
-├── quizzes/
-├── flashcards/
-├── recall/
-├── assessments/
-├── analytics/
-├── auth/
-└── settings/
-```
-
-Frontend must not contain privileged Supabase keys or AI-provider secrets.
-
-## Backend
-
-Technology:
-
-- Python
-- FastAPI
-- Pydantic
-- SQLAlchemy and/or Supabase server SDK as finalized during the database phase
-
-Proposed structure:
-
-```text
-backend/app/
-├── api/
-├── core/
-├── db/
-├── models/
-├── schemas/
-├── repositories/
-├── services/
-├── integrations/
-├── parsers/
-├── ai/
-└── main.py
-```
+## Frontend boundary
 
-### API layer
+`frontend/` uses Next.js App Router, React, TypeScript, Tailwind CSS and the official Supabase JavaScript client. It owns routes, accessible UI/forms, presentation, browser state and FastAPI clients. Feature directories cover auth, dashboard, subjects, videos, study-plan, resources, quizzes, flashcards, assessments, focus, analytics and assistant. Shared components and the authenticated `(app)` layout preserve the shell across navigation.
 
-Keep HTTP handlers thin:
+The browser SDK handles email/password sign-in, local session persistence/refresh and sign-out only. Sessions live in browser local storage; the client page guard controls navigation, not data authorization. One shared auth provider verifies the initial identity through FastAPI and reuses identity for the same token. API clients send `Authorization: Bearer <access_token>`, recover a rejected session once, and retain retryable UI for temporary dependency failures. The browser does not query application tables or mutate Storage directly.
 
-- request parsing
-- auth boundary
-- validation handoff
-- service calls
-- response mapping
+Only the Supabase project URL, current publishable key and FastAPI public URL belong in frontend variables. No database credentials, secret key or AI key crosses this boundary.
 
-### Services
+## Backend boundary
 
-Business logic examples:
+`backend/` uses FastAPI/Pydantic for HTTP validation, HTTPX for Auth/Storage/Gemini, SQLAlchemy/Psycopg for PostgreSQL and Alembic for explicit migrations. Thin `app/api` handlers delegate to `app/services`, `app/repositories`, `app/parsers` and `app/ai`; `app/schemas` holds DTOs, `app/core` holds settings/auth and `app/db` holds connection infrastructure. No application startup schema creation or migration occurs.
 
-- schedule service
-- progress service
-- quiz service
-- recall service
-- resource service
-- analytics service
-- assessment service
+Protected routes validate the bearer token with Supabase `/auth/v1/user`; the verified UUID supplies ownership. Invalid sessions return 401; unavailable dependencies return sanitized errors. Repositories explicitly scope private records to that identity because privileged backend access is not constrained by browser RLS. PostgreSQL RLS/grants additionally protect direct authenticated access. Public `/health` tests process availability only.
 
-### Repositories/data access
+The backend owns curriculum validation, lecture progress, planner recurrence, actual session duration, resource parsing, CSV normalization, quiz scoring, versioned recall scheduling, assessment percentages and analytics calculations. The frontend renders those results. [API.md](API.md), [DATABASE.md](DATABASE.md) and [DATA_AND_TELEMETRY.md](DATA_AND_TELEMETRY.md) define detailed contracts.
 
-Use a consistent data-access boundary. Do not scatter SQL/Supabase queries through route handlers.
+## Domain modules and persistence
 
-### Parsers
+| Domain | Authoritative behavior |
+| --- | --- |
+| Curriculum and videos | Stable subject/topic/video identities; private lecture completion; known and unknown durations kept distinct. |
+| Dashboard and planner | Owner-scoped summaries, recurrence expansion and occurrence snapshots; tasks and one active study session per account. Planned time stays separate from actual time. |
+| Resources | Owned PDF/CSV metadata, private originals and ordered PDF sections; parsing is synchronous and bounded. |
+| Quizzes | Questions/options, ordered quizzes, frozen attempt snapshots and saved answers. Submission grades server-side; completed scores survive later bank edits. |
+| Flashcards and recall | Private decks/cards, immutable review history and transactional `recall-v1` scheduling with revision/request safeguards. |
+| Assessments | Exact topic or explicit whole-subject coverage, manual results and independent preparation indicators; archive retains history. |
+| Focus and analytics | Persisted server timestamps; finished-session time clipped/split by profile-local dates; recurrence-aware planned totals. |
+| AI assistance | Owned source resolution, bounded Gemini calls, validated transient drafts and explicit-save provenance. |
 
-Planned:
+Current migrations end at `0010_ai_provenance`. Version-controlled migrations include constraints, owner relationships, RLS and grants. Google Sheets/XLSX and CSV are input sources, not a second production database. Reviewed workbook import tools are local, dry-run-first and insert-only; they preserve source metadata and reject conflicts instead of overwriting user data. See [IMPORTS.md](IMPORTS.md).
 
-```text
-backend/app/parsers/
-├── pdf_parser.py
-├── csv_parser.py
-├── quiz_csv_parser.py
-├── flashcard_csv_parser.py
-└── spreadsheet_importer.py
-```
+## Resource service boundary
 
-### AI
+FastAPI checks the multipart envelope and 4 MiB file cap, validates CSV before writing, stores originals in private `study-resources`, and stores resource metadata/page text in PostgreSQL. Object paths are backend-controlled. Download access uses a freshly authorized 120-second signed URL.
 
-Implemented Phase 12 backend boundary:
+Storage and PostgreSQL cannot share a transaction. Upload failures compensate newly created objects; deletion retains metadata if Storage removal fails. Processing status commits synchronously rather than representing a durable background queue. PDF text and paginated responses are bounded; no OCR or general background worker is implemented. A future worker belongs behind the existing processing service if supported workload requires one.
 
-```text
-backend/app/ai/
-├── provider.py
-├── retrieval.py
-├── prompts.py
-├── limits.py
-└── draft_receipts.py
-```
+## AI service boundary
 
-AI provider calls stay server-side.
+`app/ai` contains provider, retrieval, prompts, limits and draft-receipt logic. FastAPI resolves owned ready PDF passages or completed quiz snapshots before Gemini calls. Topic-only help is explicitly identified as AI knowledge. Fixed system instructions are separate from untrusted study material; quotes and page citations are validated against supplied passages.
 
-Authenticated routes resolve owned PDF passages/completed quiz snapshots before
-the provider call. Services validate transient responses; explicit save reuses
-existing question/card creation. No chat tables, embeddings or worker queues.
-See [Phase 12](docs/phase-12-ai-study.md) and [AI.md](AI.md).
+No model output automatically persists or controls study history. Ask/explain remain transient. Explicit question/card saves reuse existing domain APIs and verify owner-bound draft receipts. AI cards save suspended. Nullable provenance records the original provider/model/source context, not a guarantee about later user edits. Receipt signing derives a purpose-separated key from the existing backend secret; no extra environment key is required.
 
-## Supabase
+Provider requests have size/output/time caps and no automatic retries. Process-local limits are not a distributed budget; production requires provider quota controls. There are no embeddings, vector database, chat-history tables, AI workers or frontend provider calls. See [AI.md](AI.md) and [the AI contract](docs/phase-12-ai-study.md).
 
-Supabase provides:
+## Hosting and operations
 
-- PostgreSQL
-- Auth
-- Storage
+The supported deployment plan uses separate Vercel projects rooted at `frontend/` and `backend/`, with separate environment variables/builds/logs. The backend pins Python 3.13 in `.python-version`. Supabase supplies database/Auth/Storage. Frontend public variables are build-time configuration; backend CORS lists exact trusted frontend origins. Schema and bucket setup run explicitly before relying on dependent features.
 
-FastAPI remains the primary application/business API.
-
-The frontend may use documented browser-side Supabase Auth, but core application data operations should flow through FastAPI unless a later architecture decision explicitly documents an exception.
-
-## Data-source strategy
-
-Google Sheets/XLSX is an initial import source.
-
-Production source of truth:
-
-- PostgreSQL for structured data
-- Supabase Storage for files
-
-Do not model one production table per spreadsheet tab.
-
-## API style
-
-Initial style:
-
-- REST
-- JSON
-- `/api/...`
-
-Do not add versioning complexity until needed.
-
-## Authentication
-
-Supabase Auth is the identity provider.
-
-FastAPI validates identity before privileged user-data operations.
-
-Service-role credentials are backend-only.
-
-### Implemented Phase 2 boundaries
-
-The official Supabase JavaScript client lives in `frontend/src/features/auth/` and is used only for email/password sign-in, session persistence/refresh, and local-browser sign-out. `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` requires a current publishable key; backend configuration uses `SUPABASE_SECRET_KEY` for the current secret key. Legacy anon/service-role variables are not used by the application. The login route is `/login`; the existing shell at `/` uses a client session guard and waits for backend identity verification. No cookies or Next.js server auth APIs are introduced. The client guard is navigation behavior, never the security authority for data.
-
-`frontend/src/services/api.ts` sends the current bearer access token to FastAPI. A reusable dependency in `backend/app/core/auth.py` validates it through Supabase Auth's `/auth/v1/user` endpoint using HTTPX and a backend-only API key. Only the verified UUID/email cross the auth boundary. Supabase outages fail closed with 503; invalid sessions return 401. No local unverified JWT decoding is used.
-
-SQLAlchemy and Psycopg provide lazy server-side PostgreSQL access; Alembic owns version-controlled migrations under `backend/migrations/`. A subjects repository separates data access from HTTP handlers. No ORM abstractions are created for unused domains. Application startup never creates tables or runs migrations. `/health` can run with all Supabase settings blank.
-
-Phase 2 introduced profiles, subjects, empty topics, Auth, `/api/auth/me`, and read-only `/api/subjects`. Profile creation uses a Supabase Auth trigger. Subsequent phases add curriculum imports, progress/planning and the Phase 7 resource boundary below. See DATABASE.md for the RLS and privileged-backend access model.
-
-## Long-running work
-
-### Phase 7 resource boundary
-
-The Resource Library uses the existing verified bearer identity and SQLAlchemy
-repository convention. FastAPI validates bounded multipart uploads, creates
-owner-scoped metadata, delegates private object operations to an HTTPX Storage
-service, and processes files through isolated PDF/CSV parsers. The browser never
-creates resource metadata or supplies storage paths directly. The shared auth
-layout and token recovery also serve multipart requests; no new auth provider exists.
-
-Originals live in the private `study-resources` bucket. PostgreSQL stores resources
-and ordered PDF page sections; CSV preview is read from the original, not a generic
-permanent CSV-row table. Processing is synchronous and size/output bounded. Storage
-upload precedes metadata creation and PDF extraction. The uploaded/processing
-transitions and final ready/failed state commit together; intermediate states are
-not durable background jobs. CSV validation occurs before Storage writes. Storage
-and PostgreSQL cannot share a transaction: upload failures compensate new objects,
-and deletion retains metadata when Storage fails. Provider/database failures are
-reported without keys, signed links, file contents or raw exception text.
-
-The resource processing service is the future worker boundary. No queue, OCR,
-embeddings, document generation or AI calls are introduced by Phase 7.
-
-Keep the first implementation simple.
-
-If large PDF/AI processing later exceeds Vercel execution constraints, introduce a worker/job system as a separate architecture phase rather than rewriting the whole backend.
-
-## Deployment
-
-- frontend: Vercel project rooted at `frontend/`
-- backend: Vercel project rooted at `backend/`
-- database/auth/storage: Supabase
-
-See `DEPLOYMENT.md`.
-
-## Architectural invariants
-
-Phase 9 adds private decks/cards/reviews through separate FastAPI schemas/routes/
-repositories/services, reusing verified identity, curriculum checks and resources.
-The pure versioned scheduling service calculates server-owned intervals/dates;
-one transaction locks card revision, persists immutable history and advances current
-state. No queue/worker, extra auth listener, new SDK or frontend scheduling authority.
-Next.js reuses shared authenticated layout and renders editable authoring and
-reveal/rating views. Workbook recall inspection is read-only and report-only.
-
-Phase 8 keeps validation, source ownership, CSV normalization and scoring in
-FastAPI, with separate quiz routes/schemas/repositories/services and a dedicated
-CSV parser/import service. PostgreSQL stores questions/options, ordered quizzes,
-private frozen attempt snapshots and persisted answers. Next.js owns authoring,
-ordered selection, taking and review; it never computes authoritative scores.
-The existing shared authenticated layout/client is reused without per-page guards
-or extra listeners. CSV import uses existing backend signing credentials only;
-no new secret, SDK, worker or paid resource is required.
-
-1. Frontend and backend remain separately runnable.
-2. Business logic stays backend-side.
-3. Secrets stay server-side.
-4. PostgreSQL is the structured-data source of truth.
-5. Files live in managed object storage.
-6. Imports are normalized before persistence.
-7. AI-generated learning material retains source metadata where possible.
-8. Schema/API changes are explicit and documented.
+No production project link or URL is recorded. Deployment steps are in [DEPLOYMENT.md](DEPLOYMENT.md); operating responsibilities, recovery considerations and known limits are in [docs/HANDOFF.md](docs/HANDOFF.md).
