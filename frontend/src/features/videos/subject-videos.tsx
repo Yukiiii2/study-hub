@@ -9,13 +9,15 @@ import { CurriculumLoading, CurriculumError } from "@/features/subjects/load-sta
 import { flattenTopics } from "@/features/subjects/hierarchy";
 import { formatDuration } from "./duration";
 import { PageHeader } from "@/components/page-header";
-import { ProgressMeter, SectionHeader, StatusBadge } from "@/components/study-ui";
+import { LoadingNotice, ProgressMeter, SectionHeader, StatusBadge } from "@/components/study-ui";
 import { SubjectNavigation } from "@/features/subjects/subject-navigation";
 
 type PageData = { subject: Subject; topics: Topic[]; lectures: SubjectVideos };
 
 export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
-  const [data, setData] = useState<PageData | null>(null);
+  const [savedData, setData] = useState<PageData | null>(null);
+  const data = savedData?.subject.id === subjectId ? savedData : null;
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; missing: boolean } | null>(null);
   const [retry, setRetry] = useState(0);
   const [pending, setPending] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
   useEffect(() => {
     const controller = new AbortController();
     lifetime.current = controller;
-    setData(null); setError(null); setUpdateError(null); setNotice(""); setPending(null);
+    setLoading(true); setError(null); setUpdateError(null); setNotice(""); setPending(null);
     saving.current = false;
     void Promise.all([getSubject(subjectId, controller.signal), getSubjectTopics(subjectId, controller.signal), getSubjectVideos(subjectId, controller.signal)])
       .then(([subject, topics, lectures]) => { if (!controller.signal.aborted) setData({ subject, topics, lectures }); })
@@ -39,7 +41,7 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
         if (controller.signal.aborted) return;
         const missing = error instanceof ApiError && (error.status === 404 || error.status === 422);
         setError({ missing, message: missing ? "This subject is unavailable. Choose another subject." : error instanceof ApiError ? error.message : "Could not load videos. Try again." });
-      });
+      }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [subjectId, retry]);
 
@@ -71,8 +73,10 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
 
   return <>
     <Link className="back-link" href={`/subjects/${subjectId}`}>Subject topics</Link>
-    {error ? error.missing ? <section className="curriculum-state"><h1>Subject not found</h1><p role="alert">{error.message}</p><Link className="back-link" href="/subjects">All subjects</Link></section> :
-      <CurriculumError message={error.message} retry={() => setRetry((value) => value + 1)} /> : data === null ? <CurriculumLoading /> : <>
+    {error && (error.missing ? <section className="curriculum-state"><h1>Subject not found</h1><p role="alert">{error.message}</p><Link className="back-link" href="/subjects">All subjects</Link></section> :
+      <CurriculumError message={error.message} retry={() => setRetry((value) => value + 1)} />)}
+    {loading && data && <LoadingNotice>Refreshing lectures…</LoadingNotice>}
+    {error?.missing ? null : data === null ? !error && <CurriculumLoading /> : <>
       <div className="subject-overview subject-workspace-header" data-subject={data.subject.code}>
         <span className="subject-marker" data-color={data.subject.color_key ?? undefined} aria-hidden="true" />
         <PageHeader title={`${data.subject.code} lectures`} description={data.subject.name} className="subject-heading" actions={<Link className="primary-button" href={`/focus?subject_id=${subjectId}`}>Start Focus</Link>} />

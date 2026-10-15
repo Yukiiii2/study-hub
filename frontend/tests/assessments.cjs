@@ -88,7 +88,8 @@ stateIndex = 0; loadOverrides = [{ loading: true }, { data: { assessments: [], t
 const loadingTimezone = render(AssessmentListPage, {});
 assert(loadingTimezone.includes('disabled="">New assessment') && loadingTimezone.includes("No assessments match this view"));
 stateIndex = 0; loadOverrides = [{ data: { timezone: "Asia/Manila" } }, { loading: true, data: { assessments: [definition], total: 1, filters } }];
-assert(!render(AssessmentListPage, {}).includes("Synthetic"), "Do not present stale list data during refresh");
+const refreshingList = render(AssessmentListPage, {});
+assert(refreshingList.includes("&lt;script&gt;assessment&lt;/script&gt;") && refreshingList.includes("Refreshing"), "Keep successful assessment data visible with a refresh notice");
 stateOverrides = null;
 loadOverrides = [{ data: { ...definition, status: "archived" } }, { data: { attempts: [attempt], total: 1, offset: 0 } }];
 const archivedDetail = render(AssessmentDetailPage, { id: definition.id });
@@ -96,6 +97,9 @@ assert(archivedDetail.includes("Result history") && archivedDetail.includes("Uns
 loadOverrides = [{ data: definition }, { error: "Result history unavailable" }];
 const failedHistory = render(AssessmentDetailPage, { id: definition.id });
 assert(failedHistory.includes("Result history unavailable") && failedHistory.includes("Try again") && !failedHistory.includes("No results recorded"));
+loadOverrides = [{ data: definition, loading: true }, { data: { attempts: [attempt], total: 1, offset: 0 }, error: "History refresh failed" }];
+const retainedDetail = render(AssessmentDetailPage, { id: definition.id });
+assert(retainedDetail.includes("Edit assessment") && retainedDetail.includes("Unscored") && retainedDetail.includes("History refresh failed"), "Definition and result history survive independent refresh failure");
 loadOverrides = null;
 (async () => {
   await assert.rejects(assessmentLoad(Promise.reject(new ApiError("PRIVATE", 404))), (error) => error.status === 500 && error.message.includes("assessment") && !error.message.includes("quiz"));

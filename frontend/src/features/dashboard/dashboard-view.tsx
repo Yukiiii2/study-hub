@@ -31,10 +31,10 @@ export function DashboardView({ data, refreshing, error, onRefresh, extras, extr
   function fullDate(instant: string) { return new Intl.DateTimeFormat("en", { timeZone: data!.timezone, year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(instant)); }
 
   return <div className="study-dashboard">
-    <header className="dash-welcome"><div><h1>{greeting}</h1><p>{data ? <time dateTime={data.date}>{dateLabel(data.date, { weekday: "long", month: "long", day: "numeric" })}</time> : "Your CPALE review workspace"}</p></div><div className="dash-header-actions"><Link className="secondary-button" href="/study-plan">View full plan</Link><button className="ghost-button icon-button" aria-label={refreshing ? "Refreshing dashboard" : "Refresh dashboard"} disabled={refreshing} onClick={onRefresh}><InterfaceIcon name="refresh" /></button></div></header>
+    <header className="dash-welcome"><div><h1>{greeting}</h1><p>{data ? <time dateTime={data.date}>{dateLabel(data.date, { weekday: "long", month: "long", day: "numeric" })}</time> : "Your CPALE review workspace"}</p></div><div className="dash-header-actions"><Link className="secondary-button" href="/study-plan">View full plan</Link><button className="ghost-button icon-button" aria-busy={refreshing} aria-label={refreshing ? "Refreshing dashboard" : "Refresh dashboard"} disabled={refreshing} onClick={onRefresh}><InterfaceIcon name="refresh" /></button></div></header>
     {error && <div className="resource-error"><p className="auth-error" role="alert">{error} {data && "Showing the last loaded dashboard."}</p><button className="secondary-button" onClick={onRefresh}>Try again</button></div>}
     {extraErrors.length > 0 && <p className="resource-note" role="alert">{extraErrors.join(", ")} could not refresh. Showing saved values where available. Use Refresh to retry.</p>}
-    {data === null ? !error && <CurriculumLoading /> : <>
+    {data === null ? !error && <CurriculumLoading layout="dashboard" /> : <>
       <section className="study-docket" aria-labelledby="dashboard-now">
         <header><span className="docket-indicator" aria-hidden="true" /><h2 id="dashboard-now">Now / Next</h2>{active && <StatusBadge tone="success">Session active</StatusBadge>}</header>
         <div className="docket-body">

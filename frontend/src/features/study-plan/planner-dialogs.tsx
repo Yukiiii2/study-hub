@@ -53,6 +53,8 @@ function eventFields(event: StudyEvent | undefined, date: string, time: string, 
 export function EventDialog({ event, task, date, time = "09:00", timezone, subjects, close, saved, beginSession }: { event?: StudyEvent; task?: StudyTask; date: string; time?: string; timezone: string; subjects: Subject[]; close: () => void; saved: () => void; beginSession: (event: StudyEvent) => Promise<void> }) {
   const [fields, setFields] = useState(() => eventFields(event, date, time, timezone, task));
   const [scope, setScope] = useState<"occurrence" | "series">(event?.recurrence_rule && !event.occurrence_date ? "series" : "occurrence");
+  const [pendingAction, setPendingAction] = useState<"save" | "delete" | "start" | null>(null);
+  const mutationLock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -76,7 +78,7 @@ export function EventDialog({ event, task, date, time = "09:00", timezone, subje
   }
 
   async function save() {
-    setBusy(true); setError(null);
+    if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("save"); setError(null);
     try {
       if (!fields.title.trim()) throw new Error("Enter an event title.");
       if (topicState.loading || topicState.error) throw new Error("Wait for topics to load before saving.");
@@ -94,12 +96,12 @@ export function EventDialog({ event, task, date, time = "09:00", timezone, subje
       else await createEvent(body);
       saved(); close();
     } catch (error) { setError(plannerError(error)); }
-    finally { setBusy(false); }
+    finally { mutationLock.current = false; setBusy(false); setPendingAction(null); }
   }
 
   async function remove() {
-    setBusy(true); setError(null);
-    try { await deleteEvent(event!, scope === "series"); saved(); close(); } catch (error) { setError(plannerError(error)); } finally { setBusy(false); }
+    if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("delete"); setError(null);
+    try { await deleteEvent(event!, scope === "series"); saved(); close(); } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); }
   }
 
   return <Dialog title={event ? "Study event" : task ? "Schedule task" : "New study event"} busy={busy || switching} close={close}>
@@ -121,9 +123,9 @@ export function EventDialog({ event, task, date, time = "09:00", timezone, subje
         <label className="planner-wide">Notes<textarea rows={3} maxLength={10000} value={fields.notes} onChange={(event) => change("notes", event.target.value)} /></label>
       </fieldset>
       {error && <p className="auth-error" role="alert">{error}</p>}
-      {confirmDelete && <div className="planner-delete-confirm"><p>Delete {scope === "series" ? "the entire series" : recurringOccurrence ? "only this occurrence" : "this event"}? Recorded study sessions are kept.</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>Confirm deletion</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</button></div>}
-      <div className="planner-dialog-actions"><button className="primary-button" disabled={busy || switching || !!topicState.error || topicState.loading}>{busy ? "Saving…" : task ? "Schedule task" : "Save event"}</button>
-        {event && <><button type="button" className="secondary-button" disabled={busy || switching || scope === "series"} onClick={async () => { setBusy(true); setError(null); try { await beginSession(event); close(); } catch (error) { setError(plannerError(error)); } finally { setBusy(false); } }}>Start study session</button><button type="button" className="secondary-button planner-danger" disabled={busy || switching} onClick={() => setConfirmDelete(true)}>Delete {scope === "series" ? "series" : "event"}</button></>}
+      {confirmDelete && <div className="planner-delete-confirm"><p>Delete {scope === "series" ? "the entire series" : recurringOccurrence ? "only this occurrence" : "this event"}? Recorded study sessions are kept.</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>{pendingAction === "delete" ? "Deleting…" : "Confirm deletion"}</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</button></div>}
+      <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || switching || !!topicState.error || topicState.loading}>{pendingAction === "save" ? "Saving…" : task ? "Schedule task" : "Save event"}</button>
+        {event && <><button type="button" className="secondary-button" disabled={busy || switching || scope === "series"} onClick={async () => { if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("start"); setError(null); try { await beginSession(event); close(); } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); } }}>{pendingAction === "start" ? "Starting…" : "Start study session"}</button><button type="button" className="secondary-button planner-danger" disabled={busy || switching} onClick={() => setConfirmDelete(true)}>Delete {scope === "series" ? "series" : "event"}</button></>}
       </div>
     </form>
   </Dialog>;
@@ -139,11 +141,13 @@ export function TaskDialog({ task, timezone, subjects, saved, close }: { task?: 
   const [dueAt, setDueAt] = useState(due ? `${due.date}T${due.time}` : "");
   const [status, setStatus] = useState<StudyTask["status"]>(task?.status ?? "pending");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"save" | "delete" | "start" | null>(null);
+  const mutationLock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const topicState = useTopics(subject);
   async function save() {
-    setBusy(true); setError(null);
+    if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("save"); setError(null);
     try {
       if (!title.trim()) throw new Error("Enter a task title.");
       if (topicState.loading || topicState.error) throw new Error("Wait for topics to load before saving.");
@@ -152,11 +156,11 @@ export function TaskDialog({ task, timezone, subjects, saved, close }: { task?: 
       if (task) await updateTask(task.id, { ...body, ...(status !== task.status && status !== "scheduled" ? { status } : {}) });
       else await createTask({ ...body, status: "pending" });
       saved(); close();
-    } catch (error) { setError(plannerError(error)); } finally { setBusy(false); }
+    } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); }
   }
   async function remove() {
-    setBusy(true); setError(null);
-    try { await deleteTask(task!.id); saved(); close(); } catch (error) { setError(plannerError(error)); } finally { setBusy(false); }
+    if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("delete"); setError(null);
+    try { await deleteTask(task!.id); saved(); close(); } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); }
   }
   return <Dialog title={task ? "Edit study task" : "New study task"} busy={busy} close={close}><form className="study-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}><fieldset className="planner-form-grid" disabled={busy}>
     <label className="planner-wide">Title<input autoFocus required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
@@ -167,6 +171,6 @@ export function TaskDialog({ task, timezone, subjects, saved, close }: { task?: 
     {task?.scheduled_event_id && status === "pending" && status !== task.status && <p className="planner-note planner-wide">Returning this task to pending removes its calendar link. The existing calendar event remains and can be managed separately.</p>}
     <label className="planner-wide">Due date and time (optional)<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label><p className="planner-note planner-wide">Due time uses {timezone}. Scheduling a task creates its linked calendar event.</p>
     </fieldset>{error && <p className="auth-error" role="alert">{error}</p>}
-    {confirmDelete && <div className="planner-delete-confirm"><p>Delete this task?{task?.scheduled_event_id ? " Its calendar event remains." : ""}</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>Confirm deletion</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep task</button></div>}
-    <div className="planner-dialog-actions"><button className="primary-button" disabled={busy || topicState.loading || !!topicState.error}>{busy ? "Saving…" : "Save task"}</button>{task && <button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>Delete task</button>}</div></form></Dialog>;
+    {confirmDelete && <div className="planner-delete-confirm"><p>Delete this task?{task?.scheduled_event_id ? " Its calendar event remains." : ""}</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>{pendingAction === "delete" ? "Deleting…" : "Confirm deletion"}</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep task</button></div>}
+    <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || topicState.loading || !!topicState.error}>{pendingAction === "save" ? "Saving…" : "Save task"}</button>{task && <button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>Delete task</button>}</div></form></Dialog>;
 }

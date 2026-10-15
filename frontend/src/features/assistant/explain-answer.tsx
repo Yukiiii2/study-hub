@@ -17,5 +17,5 @@ export function ExplainAnswerAction({ attemptId, questionId }: { attemptId: stri
     catch (failure) { if (!request.signal.aborted) setError(aiError(failure)); }
     finally { if (!request.signal.aborted) { controller.current = null; setBusy(false); } }
   }
-  return <div className="assistant-review-action"><button type="button" className="secondary-button" disabled={busy} onClick={() => void explain()}>{busy ? "Explaining…" : response ? "Explain again with AI" : "Explain this answer with AI"}</button>{error && <p className="auth-error" role="alert">{error}</p>}{response && <AIResponseView response={response} />}</div>;
+  return <div className="assistant-review-action"><button type="button" className="secondary-button" aria-busy={busy} disabled={busy} onClick={() => void explain()}>{busy ? "Explaining answer…" : response ? "Explain again with AI" : "Explain this answer with AI"}</button>{error && <p className="auth-error" role="alert">{error}</p>}{response && <AIResponseView response={response} />}</div>;
 }

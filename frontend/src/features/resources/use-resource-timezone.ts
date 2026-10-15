@@ -12,5 +12,5 @@ export function useResourceTimezone() {
     void getPlannerContext(controller.signal).then((context) => { if (!controller.signal.aborted) setTimezone(context.timezone); }).catch(() => { if (!controller.signal.aborted) setFailed(true); });
     return () => controller.abort();
   }, [retry]);
-  return { timezone: timezone ?? "Asia/Manila", timezoneNote: timezone ? `Dates use ${timezone}.` : `Dates use Asia/Manila until your profile timezone is available.`, timezoneFailed: failed, retryTimezone: () => setRetry((value) => value + 1) };
+  return { timezone: timezone ?? "Asia/Manila", timezoneLoading: timezone === null && !failed, timezoneNote: timezone ? `Dates use ${timezone}.` : `Dates use Asia/Manila until your profile timezone is available.`, timezoneFailed: failed, retryTimezone: () => setRetry((value) => value + 1) };
 }

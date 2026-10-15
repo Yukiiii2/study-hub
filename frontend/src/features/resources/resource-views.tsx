@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Resource, ResourceContent, ResourceList } from "@/services/resources";
-import { SectionHeader, StatusBadge } from "@/components/study-ui";
+import { ContentSkeleton, LoadingNotice, SectionHeader, StatusBadge } from "@/components/study-ui";
 
 export const resourceStatus = (resource: Resource) => ({ uploaded: "Uploaded", processing: "Processing", ready: "Ready", failed: "Processing failed" })[resource.processing_status];
 export const resourceSize = (bytes: number) => bytes < 1024 ? `${bytes} bytes` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KiB` : `${(bytes / 1048576).toFixed(1)} MiB`;
@@ -15,7 +15,7 @@ export function ResourcePagination({ offset, limit, total, busy, changePage }: {
 export function ResourceListView({ data, loading, error, retry, offset, limit, changePage, timezone, filtered = false }: { data: ResourceList | null; loading: boolean; error: string | null; retry: () => void; offset: number; limit: number; changePage: (offset: number) => void; timezone: string; filtered?: boolean }) {
   return <>
     {error && <ResourceError message={error} retry={retry} />}
-    {loading && <p className="resource-note" role="status">{data ? "Updating resources…" : "Loading resources…"}</p>}
+    {loading && (data ? <LoadingNotice>Refreshing resources…</LoadingNotice> : <ContentSkeleton label="Loading resources…" />)}
     {data && <><div className="resource-list-heading"><SectionHeader title={filtered ? "Matching resources" : "Study resources"} detail={`${data.total} ${data.total === 1 ? "resource" : "resources"}`} /></div>{data.resources.length === 0 ? <section className="curriculum-state"><h2>{filtered ? "No matching resources" : "No resources yet"}</h2><p>{filtered ? "Try another search or filter." : "Upload a text-based PDF or CSV to keep your study sources here."}</p></section> : <><div className="resource-column-headings" aria-hidden="true"><span>Source / subject</span><span>Type / size</span><span>Status / uploaded</span></div><ul className="resource-list" aria-label="Resources">{data.resources.map((resource) => <li key={resource.id}><Link href={`/library/${resource.id}`} className="resource-row" data-subject={resource.subject_code ?? undefined}>
       <div className="resource-copy"><strong>{resource.title}</strong><span>{resource.original_filename}</span><span>{resource.subject_code ?? "No subject"}{resource.topic_title ? ` / ${resource.topic_title}` : ""}</span></div>
       <div className="resource-facts"><span className="resource-file-facts"><span className="resource-type-badge">{resource.resource_type.toUpperCase()}</span><span>{resourceSize(resource.file_size_bytes)}</span></span><span>{resource.page_count !== null ? `${resource.page_count} pages` : resource.row_count !== null ? `${resource.row_count} rows` : ""}</span></div>

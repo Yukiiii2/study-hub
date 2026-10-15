@@ -27,5 +27,13 @@ export function ProgressMeter({ value, total, label, tone = "accent" }: {
 }
 
 export function LoadingNotice({ children = "Loading study data…" }: { children?: ReactNode }) {
-  return <div className="loading-notice" role="status"><span className="loading-notice-mark" aria-hidden="true"><i /><i /></span><span>{children}</span></div>;
+  return <div className="loading-notice" role="status" aria-live="polite"><span className="loading-notice-mark" aria-hidden="true"><i /><i /></span><span>{children}</span></div>;
+}
+
+export type SkeletonLayout = "rows" | "detail" | "chart" | "calendar" | "dashboard" | "control";
+export function ContentSkeleton({ label = "Loading study data…", layout = "rows" }: { label?: string; layout?: SkeletonLayout }) {
+  return <div className="content-skeleton" data-layout={layout} role="status" aria-live="polite" aria-busy="true">
+    <span className="skeleton-label">{label}</span>
+    <div className="skeleton-content" aria-hidden="true">{Array.from({ length: layout === "calendar" ? 14 : 3 }, (_, index) => <div className="skeleton-block" key={index}><i /><i /><i /></div>)}</div>
+  </div>;
 }

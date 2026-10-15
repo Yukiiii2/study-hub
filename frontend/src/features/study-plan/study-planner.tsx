@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSubjects, type Subject } from "@/services/subjects";
 import { getEvent, getEvents, getPlannerContext, getTasks, plannerError, startSession, stopSession, updateEvent, updateTask, type PlannerContext, type StudyEvent, type StudyTask } from "@/services/study-plan";
 import { calendarDays, dateAdd, dateLabel, localToInstant, zonedParts } from "./dates";
 import { EventDialog, TaskDialog } from "./planner-dialogs";
-import { LoadingNotice, StatusBadge } from "@/components/study-ui";
+import { ContentSkeleton, LoadingNotice, StatusBadge } from "@/components/study-ui";
 import { PageHeader } from "@/components/page-header";
 import { SummaryMetric } from "@/components/summary-metric";
 import { InterfaceIcon } from "@/components/interface-icon";
 
 type DialogState = { kind: "event"; event?: StudyEvent; task?: StudyTask; date: string; time?: string } | { kind: "task"; task?: StudyTask };
 type Tab = "calendar" | "today" | "tasks";
+type LoadedPeriod = { key: string; days: string[]; view: "month" | "week"; anchor: string; tab: Tab; today: string };
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const hours = Array.from({ length: 12 }, (_, index) => index * 2);
 
@@ -32,17 +33,25 @@ export function StudyPlanner() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [loadedPeriod, setLoadedPeriod] = useState<LoadedPeriod | null>(null);
+  const [tasksKnown, setTasksKnown] = useState(false);
+  const [subjectsKnown, setSubjectsKnown] = useState(false);
+  const actionLock = useRef(false);
   useEffect(() => { if (window.matchMedia("(max-width: 959px), (min-width: 960px) and (max-width: 1199px) and (orientation: landscape)").matches) setView("week"); }, []);
   const refresh = () => setRevision((value) => value + 1);
   const saved = () => { setNotice("Planner updated."); refresh(); };
 
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError(null);
-    void Promise.all([getPlannerContext(controller.signal), getSubjects(controller.signal), getTasks(controller.signal)]).then(([context, subjects, tasks]) => {
+    void Promise.allSettled([
+      getPlannerContext(controller.signal).then((value) => { if (!controller.signal.aborted) { setContext(value); setAnchor((current) => current || zonedParts(new Date(), value.timezone).date); } }),
+      getSubjects(controller.signal).then((value) => { if (!controller.signal.aborted) { setSubjects(value); setSubjectsKnown(true); } }),
+      getTasks(controller.signal).then((value) => { if (!controller.signal.aborted) { setTasks(value); setTasksKnown(true); } }),
+    ]).then(([context, subjects, tasks]) => {
       if (controller.signal.aborted) return;
-      setContext(context); setSubjects(subjects); setTasks(tasks);
-      setAnchor((current) => current || zonedParts(new Date(), context.timezone).date);
-    }).catch((error) => { if (!controller.signal.aborted) setError(plannerError(error)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      const failures = [context, subjects, tasks].flatMap((result, index) => result.status === "rejected" ? [`${["Planner context", "Subjects", "Tasks"][index]}: ${plannerError(result.reason)}`] : []);
+      setError(failures.length ? failures.join(" ") : null);
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [revision]);
 
@@ -51,16 +60,21 @@ export function StudyPlanner() {
   const days = anchor ? calendarDays(anchor, view) : [];
   const start = tab === "today" ? today : days[0];
   const end = tab === "today" ? dateAdd(today, 1) : days.length ? dateAdd(days[days.length - 1], 1) : "";
+  const rangeKey = JSON.stringify([start, end, timezone, tab, view]);
+  const samePeriod = loadedPeriod?.key === rangeKey;
+  const eventPending = eventsLoading || (!eventError && !samePeriod);
+  const shownDays = loadedPeriod?.days ?? days, shownView = loadedPeriod?.view ?? view;
+  const shownAnchor = loadedPeriod?.anchor ?? anchor, shownTab = loadedPeriod?.tab ?? tab, shownToday = loadedPeriod?.today ?? today;
 
   useEffect(() => {
     if (!context || !start || !end || tab === "tasks") return;
     const controller = new AbortController(); setEventsLoading(true); setEventError(null);
     void (async () => {
       const events = await getEvents(localToInstant(start, "00:00", timezone), localToInstant(end, "00:00", timezone), controller.signal);
-      if (!controller.signal.aborted) setEvents(events);
+      if (!controller.signal.aborted) { setEvents(events); setLoadedPeriod({ key: rangeKey, days, view, anchor, tab, today }); }
     })().catch((error) => { if (!controller.signal.aborted) setEventError(plannerError(error)); }).finally(() => { if (!controller.signal.aborted) setEventsLoading(false); });
     return () => controller.abort();
-  }, [context, start, end, timezone, tab, revision]);
+  }, [context, start, end, timezone, tab, revision, rangeKey]);
 
   const subjectFor = (id: string | null) => subjects.find((subject) => subject.id === id);
   function eventsOn(date: string) {
@@ -83,8 +97,10 @@ export function StudyPlanner() {
     setNotice("Study session started. Stop it when you finish.");
   }
   async function perform(action: () => Promise<void>) {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setBusy(true); setActionError(null); setNotice(null);
-    try { await action(); } catch (error) { setActionError(plannerError(error)); } finally { setBusy(false); }
+    try { await action(); } catch (error) { setActionError(plannerError(error)); } finally { actionLock.current = false; setBusy(false); }
   }
   function move(direction: number) {
     if (view === "week") setAnchor(dateAdd(anchor, direction * 7));
@@ -94,15 +110,15 @@ export function StudyPlanner() {
   return <section className="study-planner" aria-labelledby="planner-title">
     <PageHeader className="planner-heading" title="Study Plan" titleId="planner-title" description="Give your review a plan. Keep actual study time separate."
       meta={context && <><InterfaceIcon name="calendar" /><span>{dateLabel(today, { weekday: "long", month: "long", day: "numeric" })}</span><span className="context-chip">{timezone}</span></>}
-      actions={<button type="button" className="primary-button" disabled={!context || loading} onClick={() => setDialog(tab === "tasks" ? { kind: "task" } : { kind: "event", date: today })}><InterfaceIcon name="plus" />{tab === "tasks" ? "New task" : "New event"}</button>} />
+      actions={<button type="button" className="primary-button" disabled={!context || !subjectsKnown} onClick={() => setDialog(tab === "tasks" ? { kind: "task" } : { kind: "event", date: today })}><InterfaceIcon name="plus" />{tab === "tasks" ? "New task" : "New event"}</button>} />
     <nav className="planner-tabs" aria-label="Study planner views">{(["calendar", "today", "tasks"] as Tab[]).map((value) => <button type="button" key={value} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</nav>
-    {loading && <p role="status" className="planner-note">Loading planner…</p>}
+    {loading && (context ? <LoadingNotice>Refreshing planner…</LoadingNotice> : <ContentSkeleton label="Loading planner…" layout="calendar" />)}
     {error && <div className="curriculum-state"><p role="alert" className="auth-error">{error}</p><button type="button" className="secondary-button" onClick={refresh}>Refresh planner</button></div>}
-    {context && !error && <>
+    {context && <>
       <div className="planner-overview">
         <dl className="summary-strip planner-summary" aria-label="Planning overview" aria-busy={loading || (tab !== "tasks" && eventsLoading)}>
-          <SummaryMetric label={tab === "tasks" ? "Task list" : "Events in view"} value={tab === "tasks" ? tasks.length : eventsLoading || eventError ? "—" : events.length} detail={tab === "tasks" ? "Saved study tasks" : eventsLoading ? "Loading selected period…" : eventError ? "Could not load this period" : tab === "today" ? "Today's calendar" : "All dates shown in this calendar"} icon="calendar" />
-          <SummaryMetric label="Pending tasks" value={tasks.filter((task) => task.status === "pending").length} detail="Ready to schedule" icon="quizzes" tone="highlight" />
+          <SummaryMetric label={tab === "tasks" ? "Task list" : "Events in view"} value={tab === "tasks" ? tasksKnown ? tasks.length : "—" : !loadedPeriod ? "—" : events.length} detail={tab === "tasks" ? "Saved study tasks" : eventPending ? "Updating selected period; last loaded count shown" : eventError ? "Could not load this period" : tab === "today" ? "Today's calendar" : "All dates shown in this calendar"} icon="calendar" />
+          <SummaryMetric label="Pending tasks" value={tasksKnown ? tasks.filter((task) => task.status === "pending").length : "—"} detail={tasksKnown ? "Ready to schedule" : "Tasks unavailable"} icon="quizzes" tone="highlight" />
         </dl>
       <section className="planner-session" aria-label="Actual study time" data-active={!!context.active_session}><div className="planner-session-copy"><div className="planner-session-state"><InterfaceIcon name="focus" /><span>{context.active_session ? "Session active" : "Focus session"}</span></div><h2>{context.active_session ? "Study session in progress" : "Record actual study time"}</h2><p>{context.active_session ? `Started ${dateLabel(zonedParts(context.active_session.started_at, timezone).date)} at ${zonedParts(context.active_session.started_at, timezone).time} (${timezone}).` : "Start a session here or from a calendar event. Planned time stays separate."}</p></div><button type="button" className="secondary-button" disabled={busy || loading} onClick={() => void perform(async () => {
         if (context.active_session) { const finished = await stopSession(context.active_session.id); setNotice(`Session stopped. ${Math.floor((finished.duration_seconds ?? 0) / 60)} minutes recorded.`); setContext((current) => current ? { ...current, active_session: null } : current); }
@@ -111,8 +127,8 @@ export function StudyPlanner() {
       </div>
       {actionError && <div className="planner-action-error"><p role="alert" className="auth-error">{actionError}</p><button type="button" className="secondary-button" disabled={busy} onClick={refresh}>Refresh planner</button></div>}
       {notice && <p role="status" className="planner-notice">{notice}</p>}
-      {tab === "tasks" ? <section aria-labelledby="task-list-title"><div className="section-heading"><h2 id="task-list-title">Study tasks</h2><span>{tasks.length} {tasks.length === 1 ? "task" : "tasks"}</span></div>
-        {!tasks.length ? <div className="curriculum-state"><h3>No study tasks yet</h3><p>Add work to organize before choosing a study time.</p></div> : <ul className="planner-task-list">{tasks.map((task) => {
+      {tab === "tasks" ? <section aria-labelledby="task-list-title"><div className="section-heading"><h2 id="task-list-title">Study tasks</h2><span>{tasksKnown ? `${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}` : loading ? "Loading tasks…" : "Tasks unavailable"}</span></div>
+        {!tasksKnown ? loading ? <ContentSkeleton label="Loading tasks…" /> : <p role="alert" className="auth-error">Tasks are unavailable. Refresh planner to retry.</p> : !tasks.length ? <div className="curriculum-state"><h3>No study tasks yet</h3><p>Add work to organize before choosing a study time.</p></div> : <ul className="planner-task-list">{tasks.map((task) => {
           const subject = subjectFor(task.subject_id), due = task.due_at ? zonedParts(task.due_at, timezone) : null;
           return <li className="planner-task" key={task.id}><span className="subject-marker" data-color={subject?.color_key ?? undefined} aria-hidden="true" /><div className="planner-task-copy"><h3>{task.title}</h3><p>{subject?.code ?? "General"} · {task.task_type} · {task.status}{task.estimated_minutes ? ` · ${task.estimated_minutes} min planned` : ""}</p>{due && <p>Due {dateLabel(due.date)} at {due.time}{task.status !== "completed" && task.status !== "cancelled" && new Date(task.due_at!) < new Date() ? " · overdue" : ""}</p>}</div><div className="planner-task-actions">
             <button type="button" className="secondary-button" disabled={busy || loading} onClick={() => setDialog({ kind: "task", task })}>Edit</button>
@@ -124,12 +140,12 @@ export function StudyPlanner() {
       </section> : <>
         <div className="planner-calendar-toolbar"><div className="planner-period-controls">{tab === "calendar" && <><button type="button" className="secondary-button" aria-label={`Previous ${view}`} onClick={() => move(-1)}><InterfaceIcon name="previous" /></button><button type="button" className="secondary-button" onClick={() => setAnchor(today)}>Today</button><button type="button" className="secondary-button" aria-label={`Next ${view}`} onClick={() => move(1)}><InterfaceIcon name="next" /></button></>}<h2>{tab === "today" ? dateLabel(today, { weekday: "long", month: "long", day: "numeric" }) : view === "month" ? dateLabel(anchor, { month: "long", year: "numeric" }) : `${dateLabel(days[0])} – ${dateLabel(days[6], { month: "short", day: "numeric", year: "numeric" })}`}</h2></div>{tab === "calendar" && <div className="planner-view-controls" aria-label="Calendar layout">{(["month", "week"] as const).map((value) => <button type="button" key={value} className="secondary-button" aria-pressed={view === value} onClick={() => setView(value)}>{value === "month" ? "Month" : "Week"}</button>)}</div>}</div>
         <p className="planner-timezone">Times shown in {timezone}. Select a date or time to add an event.</p>
-        {eventError ? <div className="curriculum-state"><p className="auth-error" role="alert">{eventError}</p><button type="button" className="secondary-button" onClick={refresh}>Try again</button></div> : eventsLoading ? <p className="curriculum-loading" role="status">Loading study events…</p> : tab === "today" ? <div className="planner-agenda">{eventsOn(today).length ? eventsOn(today).map((event) => <div className="planner-today-row" key={`${event.id}/${event.occurrence_date ?? "one"}`}>{eventButton(event)}{event.status === "scheduled" && <button type="button" className="secondary-button" aria-label={`Complete ${event.title}`} disabled={busy || loading} onClick={() => void perform(async () => { await updateEvent(event, { status: "completed" }); saved(); })}>Complete</button>}</div>) : <div className="curriculum-state"><h3>No study events today</h3><p>Add a study event or schedule a task when you are ready.</p><button className="secondary-button" onClick={() => setDialog({ kind: "event", date: today })}>Add today&apos;s event</button></div>}</div> : <>
-          {events.length === 0 && <p className="planner-note">No events in this period. Select a date or time to plan your review.</p>}
-          <div className={`planner-calendar planner-${view}`} aria-label={`${view} calendar`}>
-            {view === "month" ? <><div className="planner-week-header">{weekdays.map((day) => <span key={day}>{day}</span>)}</div><div className="planner-month-grid">{days.map((date) => <section className="planner-month-day" data-outside={date.slice(0, 7) !== anchor.slice(0, 7)} data-today={date === today} key={date} aria-label={dateLabel(date, { weekday: "long", month: "long", day: "numeric" })}><button type="button" className="planner-date-button" aria-current={date === today ? "date" : undefined} aria-label={`Add event on ${dateLabel(date)}`} onClick={() => setDialog({ kind: "event", date })}>{Number(date.slice(-2))}</button>{eventsOn(date).map((event) => eventButton(event, true))}</section>)}</div></> : <div className="planner-week-grid"><div className="planner-week-times" aria-hidden="true"><div className="planner-week-day-header" style={{ gridColumn: 1, gridRow: 1 }}>Time</div>{hours.map((hour, hourIndex) => <div className="planner-hour" style={{ gridColumn: 1, gridRow: hourIndex + 2 }} key={hour}>{`${String(hour).padStart(2, "0")}:00`}</div>)}</div>{days.map((date, dayIndex) => <section className="planner-week-column" key={date} data-today={date === today} aria-label={dateLabel(date, { weekday: "long", month: "long", day: "numeric" })}><button className="planner-week-day-header" aria-current={date === today ? "date" : undefined} style={{ gridColumn: dayIndex + 2, gridRow: 1 }} onClick={() => setDialog({ kind: "event", date })}>{dateLabel(date, { weekday: "short", day: "numeric" })}</button>{hours.map((hour, hourIndex) => <div className="planner-time-cell" style={{ gridColumn: dayIndex + 2, gridRow: hourIndex + 2 }} key={hour}><button className="planner-time-add" aria-label={`Add event on ${dateLabel(date)} at ${String(hour).padStart(2, "0")}:00`} onClick={() => setDialog({ kind: "event", date, time: `${String(hour).padStart(2, "0")}:00` })}><InterfaceIcon name="plus" /></button>{eventsOn(date).filter((event) => { const start = zonedParts(event.start_at, timezone); const startHour = start.date < date ? 0 : Number(start.time.slice(0, 2)); return startHour >= hour && startHour < hour + 2; }).map((event) => eventButton(event, true))}</div>)}</section>)}</div>}
+        {eventError && <div className="resource-error"><p className="auth-error" role="alert">{eventError}{loadedPeriod && " Showing the last loaded calendar."}</p><button type="button" className="secondary-button" onClick={refresh}>Try again</button></div>}{loadedPeriod && eventPending && <LoadingNotice>Updating study events… Keeping the last loaded calendar visible.</LoadingNotice>}{loadedPeriod && !samePeriod && <p className="resource-note">Last loaded dates: {dateLabel(shownTab === "today" ? shownToday : shownDays[0])}{shownTab !== "today" && ` – ${dateLabel(shownDays[shownDays.length - 1])}`}. The selected period will appear after it loads.</p>}{!loadedPeriod ? !eventError && <ContentSkeleton label="Loading study events…" layout="calendar" /> : shownTab === "today" ? <div className="planner-agenda">{eventsOn(shownToday).length ? eventsOn(shownToday).map((event) => <div className="planner-today-row" key={`${event.id}/${event.occurrence_date ?? "one"}`}>{eventButton(event)}{event.status === "scheduled" && <button type="button" className="secondary-button" aria-label={`Complete ${event.title}`} disabled={busy || loading} onClick={() => void perform(async () => { await updateEvent(event, { status: "completed" }); saved(); })}>Complete</button>}</div>) : <div className="curriculum-state"><h3>No study events in this loaded day</h3><p>Add a study event or schedule a task when you are ready.</p><button className="secondary-button" onClick={() => setDialog({ kind: "event", date: today })}>Add today&apos;s event</button></div>}</div> : <>
+          {events.length === 0 && !eventPending && <p className="planner-note">No events in this period. Select a date or time to plan your review.</p>}
+          <div className={`planner-calendar planner-${shownView}`} role="region" aria-busy={eventPending} aria-label={`${shownView} calendar`}>
+            {shownView === "month" ? <><div className="planner-week-header">{weekdays.map((day) => <span key={day}>{day}</span>)}</div><div className="planner-month-grid">{shownDays.map((date) => <section className="planner-month-day" data-outside={date.slice(0, 7) !== shownAnchor.slice(0, 7)} data-today={date === today} key={date} aria-label={dateLabel(date, { weekday: "long", month: "long", day: "numeric" })}><button type="button" className="planner-date-button" aria-current={date === today ? "date" : undefined} aria-label={`Add event on ${dateLabel(date)}`} onClick={() => setDialog({ kind: "event", date })}>{Number(date.slice(-2))}</button>{eventsOn(date).map((event) => eventButton(event, true))}</section>)}</div></> : <div className="planner-week-grid"><div className="planner-week-times" aria-hidden="true"><div className="planner-week-day-header" style={{ gridColumn: 1, gridRow: 1 }}>Time</div>{hours.map((hour, hourIndex) => <div className="planner-hour" style={{ gridColumn: 1, gridRow: hourIndex + 2 }} key={hour}>{`${String(hour).padStart(2, "0")}:00`}</div>)}</div>{shownDays.map((date, dayIndex) => <section className="planner-week-column" key={date} data-today={date === today} aria-label={dateLabel(date, { weekday: "long", month: "long", day: "numeric" })}><button className="planner-week-day-header" aria-current={date === today ? "date" : undefined} style={{ gridColumn: dayIndex + 2, gridRow: 1 }} onClick={() => setDialog({ kind: "event", date })}>{dateLabel(date, { weekday: "short", day: "numeric" })}</button>{hours.map((hour, hourIndex) => <div className="planner-time-cell" style={{ gridColumn: dayIndex + 2, gridRow: hourIndex + 2 }} key={hour}><button className="planner-time-add" aria-label={`Add event on ${dateLabel(date)} at ${String(hour).padStart(2, "0")}:00`} onClick={() => setDialog({ kind: "event", date, time: `${String(hour).padStart(2, "0")}:00` })}><InterfaceIcon name="plus" /></button>{eventsOn(date).filter((event) => { const start = zonedParts(event.start_at, timezone); const startHour = start.date < date ? 0 : Number(start.time.slice(0, 2)); return startHour >= hour && startHour < hour + 2; }).map((event) => eventButton(event, true))}</div>)}</section>)}</div>}
           </div>
-          <div className="planner-mobile-agenda" aria-label="Calendar agenda">{days.map((date) => <section className="planner-agenda-day" key={date} data-today={date === today}><div className="planner-agenda-heading"><h3>{dateLabel(date, { weekday: "short", month: "short", day: "numeric" })}{date === today ? " · Today" : ""}</h3><button className="secondary-button" aria-label={`Add event on ${dateLabel(date)}`} onClick={() => setDialog({ kind: "event", date })}>Add event</button></div>{eventsOn(date).length ? eventsOn(date).map((event) => eventButton(event)) : <p className="planner-note">No events</p>}</section>)}</div>
+          <div className="planner-mobile-agenda" aria-label="Calendar agenda">{shownDays.map((date) => <section className="planner-agenda-day" key={date} data-today={date === today}><div className="planner-agenda-heading"><h3>{dateLabel(date, { weekday: "short", month: "short", day: "numeric" })}{date === today ? " · Today" : ""}</h3><button className="secondary-button" aria-label={`Add event on ${dateLabel(date)}`} onClick={() => setDialog({ kind: "event", date })}>Add event</button></div>{eventsOn(date).length ? eventsOn(date).map((event) => eventButton(event)) : <p className="planner-note">{eventPending ? "Updating…" : "No events"}</p>}</section>)}</div>
         </>}
       </>}
       {dialog?.kind === "event" && <EventDialog {...dialog} subjects={subjects} timezone={timezone} saved={saved} close={() => setDialog(null)} beginSession={beginSession} />}

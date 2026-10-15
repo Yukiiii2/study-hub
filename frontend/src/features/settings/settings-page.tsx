@@ -7,7 +7,7 @@ import { useResourceTimezone } from "@/features/resources/use-resource-timezone"
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const { timezone, timezoneNote, timezoneFailed, retryTimezone } = useResourceTimezone();
+  const { timezone, timezoneLoading, timezoneNote, timezoneFailed, retryTimezone } = useResourceTimezone();
   return <>
     <PageHeader title="Settings" description="Your account and study workspace information." />
     <div className="settings-layout">
@@ -15,8 +15,8 @@ export function SettingsPage() {
         <dl className="settings-facts"><div><dt>Email</dt><dd>{user?.email ?? "Email unavailable"}</dd></div></dl>
         <p className="resource-note">Your workspace administrator manages account access. Use the Account menu to sign out on this device.</p>
       </section>
-      <section className="ui-panel" aria-labelledby="settings-timezone"><SectionHeader title="Study timezone" titleId="settings-timezone" />
-        <dl className="settings-facts"><div><dt>Displayed timezone</dt><dd>{timezone}</dd></div></dl>
+      <section className="ui-panel" aria-labelledby="settings-timezone" aria-busy={timezoneLoading}><SectionHeader title="Study timezone" titleId="settings-timezone" />
+        <dl className="settings-facts"><div><dt>Displayed timezone</dt><dd>{timezoneLoading ? <span role="status">Loading profile timezone…</span> : timezone}</dd></div></dl>
         <p className="resource-note">{timezoneNote}</p>
         {timezoneFailed && <button type="button" className="secondary-button" onClick={retryTimezone}>Retry timezone</button>}
         <p className="resource-note">Calendar dates, review deadlines and study reports use your saved profile timezone.</p>

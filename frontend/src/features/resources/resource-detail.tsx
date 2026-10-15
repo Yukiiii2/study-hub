@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deleteResource, getResource, getResourceContent, getResourceLink, resourceError, resourceProcessingError, type Resource, type ResourceContent } from "@/services/resources";
 import { ResourceContentView, ResourceError, ResourcePagination, resourceDate, resourceSize, resourceStatus } from "./resource-views";
 import { useResourceTimezone } from "./use-resource-timezone";
 import { PageHeader } from "@/components/page-header";
-import { SectionHeader, StatusBadge } from "@/components/study-ui";
+import { ContentSkeleton, LoadingNotice, SectionHeader, StatusBadge } from "@/components/study-ui";
 
 export function ResourceDetail({ resourceId }: { resourceId: string }) {
   const router = useRouter();
@@ -22,6 +22,7 @@ export function ResourceDetail({ resourceId }: { resourceId: string }) {
   const [contentRetry, setContentRetry] = useState(0);
   const [offset, setOffset] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const actionLock = useRef(false);
   const [busy, setBusy] = useState<"open" | "download" | "delete" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const { timezone, timezoneNote, timezoneFailed, retryTimezone } = useResourceTimezone();
@@ -41,27 +42,29 @@ export function ResourceDetail({ resourceId }: { resourceId: string }) {
     return () => controller.abort();
   }, [resource, offset, contentRetry]);
   async function accessFile(download: boolean) {
+    if (actionLock.current) return;
     // Open in the click handler so browser popup rules do not block the async request.
     const target = window.open("", "_blank");
     if (!target) { setActionError("Allow this site's popups, then try opening the file again."); return; }
-    target.opener = null; setBusy(download ? "download" : "open"); setActionError(null);
+    target.opener = null; actionLock.current = true; setBusy(download ? "download" : "open"); setActionError(null);
     try {
       const link = await getResourceLink(resourceId, download);
       const url = new URL(link.url);
       if (!["https:", "http:"].includes(url.protocol)) throw new Error("Invalid file link");
       target.location.replace(url.href);
     } catch (error) { target.close(); setActionError(resourceError(error)); }
-    finally { setBusy(null); }
+    finally { actionLock.current = false; setBusy(null); }
   }
   async function remove() {
-    setBusy("delete"); setActionError(null);
+    if (actionLock.current) return;
+    actionLock.current = true; setBusy("delete"); setActionError(null);
     try { await deleteResource(resourceId); router.push("/library"); }
-    catch (error) { setActionError(resourceError(error)); setBusy(null); }
+    catch (error) { setActionError(resourceError(error)); actionLock.current = false; setBusy(null); }
   }
   return <>
     <Link href="/library" className="back-link">Back to Library</Link>
     {error && <ResourceError message={error} retry={() => setRetry((value) => value + 1)} />}
-    {loading && <p className="resource-note" role="status">{resource ? "Refreshing resource…" : "Loading resource…"}</p>}
+    {loading && (resource ? <LoadingNotice>Refreshing resource…</LoadingNotice> : <ContentSkeleton label="Loading resource…" layout="detail" />)}
     {resource && <>
       <PageHeader title={resource.title} description={resource.original_filename} className="resource-detail-heading" meta={<><span className="resource-type-badge">{resource.resource_type.toUpperCase()}</span><StatusBadge tone={resource.processing_status === "ready" ? "success" : resource.processing_status === "failed" ? "danger" : resource.processing_status === "processing" ? "info" : "neutral"}>{resourceStatus(resource)}</StatusBadge></>} actions={<div className="resource-actions"><button type="button" className="primary-button" disabled={!!busy} onClick={() => void accessFile(true)}>{busy === "download" ? "Preparing download…" : "Download original"}</button>{resource.resource_type === "pdf" && <button type="button" className="secondary-button" disabled={!!busy} onClick={() => void accessFile(false)}>{busy === "open" ? "Opening…" : "Open PDF"}</button>}<button type="button" className="secondary-button planner-danger" disabled={!!busy} onClick={() => { setConfirmDelete(true); setActionError(null); }}>Delete resource</button></div>} />
       <p className="resource-note">File links are private and expire after 2 minutes.</p>
@@ -75,7 +78,7 @@ export function ResourceDetail({ resourceId }: { resourceId: string }) {
       {resource.processing_status === "failed" && <section className="curriculum-state"><h2>PDF processing failed</h2><p>{resourceProcessingError(resource)}</p><p>Download or open the original to review it.</p></section>}
       {(resource.processing_status === "uploaded" || resource.processing_status === "processing") && <section className="curriculum-state"><h2>Text is not ready yet</h2><p>The original file is available. Refresh to check its processing status.</p><button type="button" className="secondary-button" disabled={loading} onClick={() => setRetry((value) => value + 1)}>Refresh status</button></section>}
       {contentError && <ResourceError message={contentError} retry={() => setContentRetry((value) => value + 1)} />}
-      {contentLoading && <p className="resource-note" role="status">{content ? "Updating preview…" : "Loading preview…"}</p>}
+      {contentLoading && (content ? <LoadingNotice>Updating preview…</LoadingNotice> : <ContentSkeleton label="Loading preview…" layout="detail" />)}
       {content && content.data.resource.id === resourceId && resource.processing_status === "ready" && <><ResourceContentView data={content.data} />{resource.resource_type === "pdf" && <ResourcePagination offset={content.offset} limit={10} total={content.data.total_sections} busy={contentLoading || !!contentError} changePage={setOffset} />}</>}
     </>}
   </>;

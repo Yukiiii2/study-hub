@@ -31,8 +31,9 @@ export function QuizAttemptPage({ attemptId }: { attemptId: string }) {
   const [restored, setRestored] = useState(false);
   const [recoveryUnavailable, setRecoveryUnavailable] = useState(false);
   const hydrated = useRef(false);
+  const writeLock = useRef(false);
   const pendingRestore = useRef<{ question_id: string; selected_keys: string[] } | null>(null);
-  const attempt = loaded.data;
+  const attempt = loaded.data?.id === attemptId ? loaded.data : null;
   const question = attempt?.questions[index];
   const completed = attempt?.status === "completed";
   const dirty = !!question && !completed && [...draft].sort().join("|") !== [...question.selected_keys].sort().join("|");
@@ -62,11 +63,11 @@ export function QuizAttemptPage({ attemptId }: { attemptId: string }) {
     return dirty ? saveAnswer(attempt.id, question.id, draft) : attempt;
   }
   async function action(next: (saved: Attempt) => void | Promise<void>) {
-    if (busy) return;
-    setBusy(true); setWriteError(null);
+    if (writeLock.current) return;
+    writeLock.current = true; setBusy(true); setWriteError(null);
     try { await persistBeforeAction(persist, (saved) => { clearConfirmedDraft(browserDraftStorage(), saved); loaded.setData(saved); setRestored(false); setRecoveryUnavailable(false); }, next); }
     catch (failure) { setWriteError(quizError(failure)); }
-    finally { setBusy(false); }
+    finally { writeLock.current = false; setBusy(false); }
   }
   useEffect(() => {
     if (!dirty && !busy) return;
@@ -84,8 +85,8 @@ export function QuizAttemptPage({ attemptId }: { attemptId: string }) {
   });
   async function submit() { await action(async (saved) => { const result = await completeAttempt(saved.id); clearConfirmedDraft(browserDraftStorage(), result); loaded.setData(result); setConfirm(false); setIndex(0); }); }
   const answered = attempt?.questions.filter((item) => item.selected_keys.length > 0).length ?? 0;
-  return <><PageHeader title={attempt?.title ?? "Quiz attempt"} description={completed ? "Results and answer review" : "One question at a time. Save your answer before moving on."} className="quiz-attempt-heading" actions={completed ? <Link className="secondary-button" href="/quizzes">Back to quizzes</Link> : <button type="button" className="secondary-button" disabled={busy || !attempt} onClick={() => void action(() => router.push("/quizzes"))}>Save and exit</button>} /><LoadNotice loading={loaded.loading} error={loaded.error} retry={loaded.retry} />{writeError && !confirm && <p className="auth-error" role="alert">{writeError} Your draft remains on this question.</p>}
-    {attempt && question && <div className="quiz-focus-workspace">{completed && <div className="quiz-results" role="status"><strong>{attempt.score_percent}%</strong><span>{attempt.score_value} correct out of {attempt.total_questions} questions</span><span>{attempt.questions.filter((item) => reviewQuestion(attempt, item)?.is_correct === false).length} mistakes to review</span></div>}<div className="quiz-taking-progress"><span>Question {index + 1} of {attempt.total_questions}</span><span>{answered} answered</span>{!completed && <span role="status"><StatusBadge tone={dirty ? "warning" : "neutral"}>{busy ? "Saving…" : dirty ? "Unsaved answer" : "Answer saved"}</StatusBadge></span>}</div><ProgressMeter label="Question position" total={attempt.total_questions} value={index + 1} />
+  return <><PageHeader title={attempt?.title ?? "Quiz attempt"} description={completed ? "Results and answer review" : "One question at a time. Save your answer before moving on."} className="quiz-attempt-heading" actions={completed ? <Link className="secondary-button" href="/quizzes">Back to quizzes</Link> : <button type="button" className="secondary-button" disabled={busy || !attempt} onClick={() => void action(() => router.push("/quizzes"))}>Save and exit</button>} /><LoadNotice layout="detail" label="Loading quiz attempt…" hasData={!!attempt} loading={loaded.loading} error={loaded.error} retry={loaded.retry} />{writeError && !confirm && <p className="auth-error" role="alert">{writeError} Your draft remains on this question.</p>}
+    {attempt && question && <div className="quiz-focus-workspace">{completed && <div className="quiz-results" role="status"><strong>{attempt.score_percent}%</strong><span>{attempt.score_value} correct out of {attempt.total_questions} questions</span><span>{attempt.questions.filter((item) => reviewQuestion(attempt, item)?.is_correct === false).length} mistakes to review</span></div>}<div className="quiz-taking-progress"><span>Question {index + 1} of {attempt.total_questions}</span><span>{answered} answered</span>{!completed && <span role="status"><StatusBadge tone={dirty ? "warning" : "neutral"}>{busy ? confirm ? "Submitting…" : "Saving…" : dirty ? "Unsaved answer" : "Answer saved"}</StatusBadge></span>}</div><ProgressMeter label="Question position" total={attempt.total_questions} value={index + 1} />
     {restored && dirty && <p className="planner-notice" role="status">Unsaved answer restored from this browser session. Save it before continuing.</p>}
     {recoveryUnavailable && dirty && <p className="auth-error" role="alert">Browser draft recovery is unavailable. Save your answer before leaving this page.</p>}
     <AttemptQuestionView attempt={attempt} question={question} selected={completed ? question.selected_keys : draft} change={(keys) => { setRecoveryUnavailable(!rememberAttemptDraft(browserDraftStorage(), attempt, question, keys)); setDraft(keys); setWriteError(null); }} busy={busy} openSource={completed ? undefined : (id) => void action(() => router.push(`/library/${id}`))} />

@@ -1,10 +1,7 @@
-export function CurriculumLoading() {
-  return <div className="curriculum-loading" role="status" aria-live="polite">
-    <span>Loading study data...</span>
-    <div className="skeleton-row" aria-hidden="true" />
-    <div className="skeleton-row" aria-hidden="true" />
-    <div className="skeleton-row" aria-hidden="true" />
-  </div>;
+import { ContentSkeleton, type SkeletonLayout } from "@/components/study-ui";
+
+export function CurriculumLoading({ layout = "rows" }: { layout?: SkeletonLayout }) {
+  return <ContentSkeleton label="Loading study data…" layout={layout} />;
 }
 
 export function CurriculumError({ message, retry }: { message: string; retry: () => void }) {

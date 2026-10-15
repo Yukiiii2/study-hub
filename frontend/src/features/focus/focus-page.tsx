@@ -110,8 +110,7 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
   const activeTopic = currentTopics.find((value) => value.id === active?.topic_id);
   return <>
     <PageHeader title="Focus" description="One session. One clear objective." actions={<button type="button" className="ghost-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh"}</button>} />
-    <LoadNotice loading={!snapshot && refreshing} error={loadError} retry={() => void refresh()} />
-    {loadError && snapshot && <p className="resource-note">Showing the last loaded totals. Use Refresh to check the current session and totals.</p>}
+    <LoadNotice hasData={!!snapshot} layout="detail" label="Loading your focus workspace…" loading={refreshing} error={loadError} retry={() => void refresh()} />
     {actionError && <p className="auth-error" role="alert">{actionError}</p>}
     {notice && <p className="study-time-notice" role="status">{notice}</p>}
     {snapshot && <div className="focus-layout" data-active={!!active}>
@@ -123,7 +122,7 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
           <div className="focus-timer" role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>
           <p className="resource-note">Started <time dateTime={active.started_at}>{new Intl.DateTimeFormat("en", { timeZone: snapshot.data.timezone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(active.started_at))}</time> · elapsed time</p>
           {active.notes && <div className="focus-objective"><h3>Session notes</h3><p>{active.notes}</p></div>}
-          <button type="button" className="primary-button" disabled={busy || refreshing} onClick={() => void act(true)}>{busy ? "Finishing…" : "Finish session"}</button>
+          <button type="button" className="primary-button" aria-busy={busy} disabled={busy || refreshing} onClick={() => void act(true)}>{busy ? "Finishing…" : "Finish session"}</button>
           <p className="focus-finish-note">Final duration is recorded when you finish.</p>
         </div> : <><div className="focus-ready-stage"><InterfaceIcon name="focus" /><p>Choose your study context, then settle in.</p></div><form className="quiz-builder-form focus-session-form" onSubmit={(value) => { value.preventDefault(); void act(false); }}>
           <fieldset className="planner-form-grid" disabled={busy || refreshing}>
@@ -138,10 +137,10 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
             </>}
             <label>Activity<select value={activity} onChange={(value) => setActivity(value.target.value as ActivityType)}>{activityTypes.map((value) => <option value={value} key={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}</select></label>
           </fieldset>
-          <LoadNotice loading={false} error={events.error} retry={events.retry} />
-          {!event && <><LoadNotice loading={false} error={subjects.error} retry={subjects.retry} /><LoadNotice loading={false} error={topics.error} retry={topics.retry} /></>}
+          <LoadNotice hasData={events.data != null} loading={false} error={events.error} retry={events.retry} />
+          {!event && <><LoadNotice hasData={subjects.data != null} loading={false} error={subjects.error} retry={subjects.retry} /><LoadNotice hasData={topics.data != null} loading={false} error={topics.error} retry={topics.retry} /></>}
           {((!events.loading && !validEvent) || (!event && !subjects.loading && !topics.loading && (!validSubject || !validTopic))) && <p className="auth-error" role="alert">Choose an available event or matching subject and topic before starting.</p>}
-          <button className="primary-button focus-start" disabled={busy || refreshing || !validEvent || (!event && (!validSubject || !validTopic || (subject !== "" && topics.loading))) || (needsOccurrence && !occurrence)}>{busy ? "Starting…" : "Start session"}</button>
+          <button className="primary-button focus-start" aria-busy={busy} disabled={busy || refreshing || !validEvent || (!event && (!validSubject || !validTopic || (subject !== "" && topics.loading))) || (needsOccurrence && !occurrence)}>{busy ? "Starting…" : "Start session"}</button>
         </form></>}
       </section>
       </div>

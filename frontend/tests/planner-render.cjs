@@ -22,14 +22,18 @@ function load(file) {
   return module.exports;
 }
 const { StudyPlanner } = load(path.join(src, "features/study-plan/study-planner.tsx"));
-function render({ initial = false, eventLoading = false, eventError = null, error = null, tab = "calendar" } = {}) {
+const { calendarDays, dateAdd } = load(path.join(src, "features/study-plan/dates.ts"));
+function render({ initial = false, eventLoading = false, eventError = null, error = null, tab = "calendar", retained = false } = {}) {
+  const days = calendarDays("2026-10-10", "month");
+  const period = initial || (!retained && (eventLoading || eventError)) ? null : { key: JSON.stringify([days[0], dateAdd(days.at(-1), 1), "UTC", tab, "month"]), days, view: "month", anchor: "2026-10-10", tab, today: "2026-10-10" };
   states = [initial ? null : { timezone: "UTC", active_session: null }, [], [], [], tab, "month", "2026-10-10", 0, error, eventError, null, null, initial, eventLoading, false, null];
+  states.push(period, !initial, !initial);
   stateIndex = 0;
   return renderToStaticMarkup(React.createElement(StudyPlanner));
 }
 const initial = render({ initial: true });
 assert(initial.includes("Loading planner") && !initial.includes('aria-label="Planning overview"'));
-assert(!render({ error: "Unavailable" }).includes('aria-label="Planning overview"'));
+assert(render({ error: "Unavailable" }).includes('aria-label="Planning overview"'), "A failed background refresh retains the known planner context");
 const empty = render();
 assert(empty.includes('aria-label="Planning overview"') && empty.includes("Record actual study time"));
 for (const control of ["New event", "Start session", "Previous month", "Next month", "Month", "Week"]) assert(empty.includes(control), control);
@@ -40,4 +44,10 @@ for (const options of [{ eventLoading: true }, { eventError: "Unavailable" }]) {
 }
 const tasks = render({ tab: "tasks" });
 assert(tasks.includes("New task") && tasks.includes("No study tasks yet") && tasks.includes("Saved study tasks"));
+for (const options of [{ eventLoading: true }, { eventError: "Range failed" }]) {
+  const html = render({ ...options, retained: true });
+  assert(html.includes('aria-label="month calendar"'), "The loaded calendar stays mounted during refresh and failure");
+  assert(!html.includes('class="content-skeleton"'), "No initial skeleton replaces a retained calendar");
+}
+assert(!render({ initial: true }).includes("No events"), "Unknown event data never renders an empty state");
 console.log("PASS: planner bootstrap/failure/empty states, unavailable summaries, calendar controls, task view and session actions");
