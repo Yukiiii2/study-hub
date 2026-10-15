@@ -10,11 +10,11 @@ import { PageHeader } from "@/components/page-header";
 import { InterfaceIcon } from "@/components/interface-icon";
 
 const limit = 20;
-export function ResourceLibrary() {
+export function ResourceLibrary({ initialSubject = "" }: { initialSubject?: string }) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [subjectError, setSubjectError] = useState(false);
   const [subjectRetry, setSubjectRetry] = useState(0);
-  const [filters, setFilters] = useState({ subject_id: "", resource_type: "", q: "", offset: 0 });
+  const [filters, setFilters] = useState({ subject_id: initialSubject, resource_type: "", q: "", offset: 0 });
   const [search, setSearch] = useState("");
   const [loaded, setLoaded] = useState<{ data: ResourceList; filters: typeof filters } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +43,7 @@ export function ResourceLibrary() {
       <label>Type<select value={filters.resource_type} onChange={(event) => setFilters((current) => ({ ...current, resource_type: event.target.value, offset: 0 }))}><option value="">All types</option><option value="pdf">PDF</option><option value="csv">CSV</option></select></label>
       <label>Subject<select disabled={!subjects} value={filters.subject_id} onChange={(event) => setFilters((current) => ({ ...current, subject_id: event.target.value, offset: 0 }))}><option value="">All subjects</option>{subjects?.map((subject) => <option key={subject.id} value={subject.id}>{subject.code}</option>)}</select></label><button className="secondary-button">Search</button>
     </form>
+    {(filters.q || filters.subject_id || filters.resource_type) && <button className="ghost-button" onClick={() => { setSearch(""); setFilters({ subject_id: "", resource_type: "", q: "", offset: 0 }); }}>Clear filters</button>}
     <div className="resource-timezone"><p className="resource-note">{timezoneNote}</p>{timezoneFailed && <button type="button" className="secondary-button" onClick={retryTimezone}>Retry timezone</button>}</div>
     {loaded && loaded.filters !== filters && <p className="resource-note">Showing the last loaded results while the selected filters are refreshed.</p>}
     <ResourceListView data={loaded?.data ?? null} loading={loading} error={error} retry={() => setRetry((value) => value + 1)} offset={shownFilters.offset} limit={limit} changePage={(offset) => setFilters((current) => ({ ...current, offset }))} timezone={timezone} filtered={!!(shownFilters.q || shownFilters.subject_id || shownFilters.resource_type)} />

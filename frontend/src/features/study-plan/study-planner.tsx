@@ -32,6 +32,7 @@ export function StudyPlanner() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  useEffect(() => { if (window.matchMedia("(max-width: 959px), (min-width: 960px) and (max-width: 1199px) and (orientation: landscape)").matches) setView("week"); }, []);
   const refresh = () => setRevision((value) => value + 1);
   const saved = () => { setNotice("Planner updated."); refresh(); };
 

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Study Hub visual direction</title>
+    <link rel="stylesheet" href="prototype.css" />
+  </head>
+  <body class="review-body">
+    <header class="review-header">
+      <div>
+        <p class="review-label">Visual approval prototype</p>
+        <h1>Study Hub · Review desk ledger</h1>
+      </div>
+      <p>Illustrative content for layout review. No production data or application behavior is connected.</p>
+    </header>
+    <nav class="review-tabs" aria-label="Prototype screens">
+      <button data-screen="dashboard-desktop" class="is-active">Dashboard · Desktop</button>
+      <button data-screen="dashboard-tablet">Dashboard · Tablet</button>
+      <button data-screen="dashboard-mobile">Dashboard · Mobile</button>
+      <button data-screen="focus-desktop">Focus · Desktop</button>
+      <button data-screen="focus-mobile">Focus · Mobile</button>
+      <button data-screen="analytics-desktop">Analytics · Desktop</button>
+      <button data-screen="subject-desktop">Subject · Desktop</button>
+      <button data-screen="design-system">Design System</button>
+    </nav>
+    <main class="review-stage">
+      <div class="review-meta">
+        <span id="screen-name">Dashboard · Desktop</span>
+        <span id="screen-size">1440 × 900</span>
+        <label for="viewport-size">Viewport</label>
+        <select id="viewport-size" aria-label="Review viewport size"></select>
+        <select id="scroll-position" aria-label="Review scroll position"><option value="top">Page top</option><option value="bottom">Page end</option></select>
+        <a id="open-screen" href="screen.html?view=dashboard-desktop" target="_blank" rel="noreferrer">Open at full size</a>
+      </div>
+      <div class="viewport-wrap" id="viewport-wrap">
+        <iframe id="prototype-frame" title="Study Hub prototype" src="screen.html?view=dashboard-desktop"></iframe>
+      </div>
+    </main>
+    <script src="review.js"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh" | "settings";
+export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh" | "settings" | "more";
 
 const paths: Record<IconName, string> = {
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
@@ -19,6 +19,7 @@ const paths: Record<IconName, string> = {
   plus: "M12 5v14 M5 12h14",
   settings: "M4 7h16 M4 17h16 M8 4v6 M16 14v6",
   refresh: "M20 10a8 8 0 0 0-14-4L3 9 M3 4v5h5 M4 14a8 8 0 0 0 14 4l3-3 M21 20v-5h-5",
+  more: "M4 12h1 M11 12h1 M18 12h1",
 };
 
 /** Consistent, decorative navigation geometry; the adjacent label names the action. */

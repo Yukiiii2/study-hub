@@ -27,3 +27,5 @@ data/imports/**/*.xlsx
 data/imports/**/*-private.json
 # Generated approval manifests and detailed auxiliary plans are local artifacts.
 data/imports/reports/*.json
+# Local visual-review screenshots and generated inspection output.
+docs/visual-direction/renders/

@@ -7,7 +7,7 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Dashboard | Study Hub",
+  title: "Study Hub | CPALE review workspace",
   description: "A focused workspace for CPALE review and study management.",
 };
 

@@ -27,5 +27,5 @@ export function ProgressMeter({ value, total, label, tone = "accent" }: {
 }
 
 export function LoadingNotice({ children = "Loading study data…" }: { children?: ReactNode }) {
-  return <div className="loading-notice" role="status"><span className="loading-notice-mark" aria-hidden="true" /><span>{children}</span></div>;
+  return <div className="loading-notice" role="status"><span className="loading-notice-mark" aria-hidden="true"><i /><i /></span><span>{children}</span></div>;
 }

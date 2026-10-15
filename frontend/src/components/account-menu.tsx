@@ -14,7 +14,7 @@ export function AccountMenu({ email, signingOut, signOut }: {
       event.preventDefault(); menu.current.open = false; menu.current.querySelector("summary")?.focus();
     }
   }}>
-    <summary>Account</summary>
+    <summary aria-label="Account menu" title="Account"><span className="account-avatar" aria-hidden="true">{email?.slice(0, 1).toUpperCase() || "S"}</span><span className="account-trigger-label">Account & settings</span></summary>
     <div className="account-menu-panel"><p className="account-menu-label">Signed in</p><p className="account-menu-email">{email || "Study Hub account"}</p>
       <Link className="ghost-button" href="/settings" onClick={() => { if (menu.current) menu.current.open = false; }}>Account settings</Link>
       <button className="secondary-button" onClick={signOut} disabled={signingOut}>{signingOut ? "Signing out..." : "Sign out"}</button>

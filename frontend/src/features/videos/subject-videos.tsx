@@ -10,6 +10,7 @@ import { flattenTopics } from "@/features/subjects/hierarchy";
 import { formatDuration } from "./duration";
 import { PageHeader } from "@/components/page-header";
 import { ProgressMeter, SectionHeader, StatusBadge } from "@/components/study-ui";
+import { SubjectNavigation } from "@/features/subjects/subject-navigation";
 
 type PageData = { subject: Subject; topics: Topic[]; lectures: SubjectVideos };
 
@@ -22,6 +23,10 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
   const [notice, setNotice] = useState("");
   const saving = useRef(false);
   const lifetime = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!data || !window.location.hash.startsWith("#video-")) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: "center" });
+  }, [data?.subject.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -68,11 +73,11 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
     <Link className="back-link" href={`/subjects/${subjectId}`}>Subject topics</Link>
     {error ? error.missing ? <section className="curriculum-state"><h1>Subject not found</h1><p role="alert">{error.message}</p><Link className="back-link" href="/subjects">All subjects</Link></section> :
       <CurriculumError message={error.message} retry={() => setRetry((value) => value + 1)} /> : data === null ? <CurriculumLoading /> : <>
-      <div className="subject-overview">
+      <div className="subject-overview subject-workspace-header" data-subject={data.subject.code}>
         <span className="subject-marker" data-color={data.subject.color_key ?? undefined} aria-hidden="true" />
-        <PageHeader title={`${data.subject.code} videos`} description={data.subject.name} className="subject-heading" />
+        <PageHeader title={`${data.subject.code} lectures`} description={data.subject.name} className="subject-heading" actions={<Link className="primary-button" href={`/focus?subject_id=${subjectId}`}>Start Focus</Link>} />
       </div>
-      <nav className="subject-sections" aria-label="Subject sections"><Link href={`/subjects/${subjectId}`}>Topics</Link><span aria-current="page">Videos</span></nav>
+      <SubjectNavigation subjectId={subjectId} current="lectures" />
       <section className="lecture-progress" aria-labelledby="lecture-progress-heading">
       <SectionHeader title="Lecture progress" titleId="lecture-progress-heading" />
       <ProgressMeter value={data.lectures.summary.completed_videos} total={data.lectures.summary.total_videos} label="Videos completed" />
@@ -91,7 +96,7 @@ export function SubjectVideosPage({ subjectId }: { subjectId: string }) {
           return <section key={topic.id} className="video-topic" aria-labelledby={`video-topic-${topic.id}`}>
             <div className="video-topic-heading">{topic.code && <span className="topic-code">{topic.code}</span>}<SectionHeader title={topic.title} titleId={`video-topic-${topic.id}`} detail={`${videos.filter((video) => video.status === "completed").length} / ${videos.length} videos completed`} /></div>
             {videos.length === 0 ? <p className="video-empty-topic">No lectures are available for this topic.</p> : <ul className="video-list">
-              {videos.map((video) => <li key={video.id} className="video-row" data-status={video.status}>
+              {videos.map((video) => <li key={video.id} id={`video-${video.id}`} className="video-row" data-status={video.status}>
                 <div className="video-copy"><div className="video-title"><h3>{video.title}</h3></div><div className="video-row-meta"><span className="video-duration">{formatDuration(video.duration_seconds)}</span><StatusBadge tone={video.status === "completed" ? "success" : video.status === "in_progress" ? "info" : "neutral"}>{video.status === "completed" ? "Completed" : video.status === "in_progress" ? "In progress" : "Not started"}</StatusBadge></div></div>
                 <label className="video-progress-control"><span className="sr-only">Status for {video.title}</span>
                   <select value={video.status} disabled={pending !== null} aria-busy={pending === video.id} aria-describedby={updateError?.id === video.id ? "video-update-message" : undefined} onChange={(event) => void changeStatus(video.id, event.target.value as VideoStatus)}>
