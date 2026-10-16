@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { ResponsiveView } from "@/components/responsive-view";
+import { SubjectDesktopWorkspace } from "./subject-desktop-workspace";
+import { SubjectMobileWorkspace } from "./subject-mobile-workspace";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/services/api";
 import { getSubject, getSubjectTopics, type Subject, type Topic } from "@/services/subjects";
 import { CurriculumError, CurriculumLoading } from "./load-state";
-import { TopicHierarchy } from "./topic-hierarchy";
-import { PageHeader } from "@/components/page-header";
-import { SectionHeader } from "@/components/study-ui";
-import { ContentSkeleton, LoadingNotice, ProgressMeter } from "@/components/study-ui";
-import { SubjectNavigation } from "./subject-navigation";
+import { LoadingNotice } from "@/components/study-ui";
 import { getSubjectVideos, type SubjectVideos } from "@/services/videos";
-import { formatDuration } from "@/features/videos/duration";
 
 export function SubjectDetail({ subjectId }: { subjectId: string }) {
   const [savedData, setData] = useState<{ subject: Subject; topics: Topic[] } | null>(null);
@@ -49,18 +47,7 @@ export function SubjectDetail({ subjectId }: { subjectId: string }) {
       <CurriculumError message={error.message} retry={() => setRetry((value) => value + 1)} />)}
     {loading && data && <LoadingNotice>Refreshing curriculum…</LoadingNotice>}
     {error?.missing ? null : data === null ? !error && <CurriculumLoading layout="detail" /> : <>
-      <div className="subject-overview subject-workspace-header" data-subject={data.subject.code}>
-        <span className="subject-marker" data-color={data.subject.color_key ?? undefined} aria-hidden="true" />
-        <PageHeader title={data.subject.name} description={`${data.subject.code} · ${data.topics.length} curriculum topics`} className="subject-heading" actions={<><Link className="primary-button" href={`/focus?subject_id=${encodeURIComponent(subjectId)}`}>Start Focus</Link><Link className="secondary-button" href={`/assistant?${new URLSearchParams({ subject_id: subjectId, mode: "ask" })}`}>Open Assistant</Link></>} />
-      </div>
-      <div className="subject-progress-rail" data-subject={data.subject.code}><div><span>Curriculum</span><strong>{data.topics.length} topics</strong></div><div>{lectures ? <ProgressMeter label="Lectures completed" value={lectures.summary.completed_videos} total={lectures.summary.total_videos} /> : lectureError ? <p>Lecture progress unavailable</p> : <ContentSkeleton layout="control" label="Loading lecture progress…" />}</div><div><span>Remaining lecture duration</span><strong>{lectures ? formatDuration(lectures.summary.remaining_duration_seconds) : "—"}</strong></div></div>
-      {lectureError && <button className="ghost-button" onClick={() => setRetry(value => value + 1)}>Retry lecture progress</button>}
-      {nextLecture && <section className="subject-continue" data-subject={data.subject.code}><div><span>Continue lecture</span><h2>{nextLecture.title}</h2><p>{nextLecture.topic_title} · {formatDuration(nextLecture.duration_seconds)}</p></div><Link className="secondary-button" href={`/subjects/${subjectId}/videos#video-${nextLecture.id}`}>Continue lecture</Link></section>}
-      <SubjectNavigation subjectId={subjectId} current="curriculum" />
-      <section className="subject-curriculum" aria-labelledby="topics-heading" data-subject={data.subject.code}>
-        <SectionHeader title="Curriculum" titleId="topics-heading" detail={`${data.topics.length} ${data.topics.length === 1 ? "topic" : "topics"} · choose a topic to focus or prepare study material`} />
-        {data.topics.length === 0 ? <div className="curriculum-state"><h3>Curriculum topics are not available yet</h3><p>Topics will appear here after curriculum import or setup. You can explore the other subjects in the meantime.</p></div> : <TopicHierarchy topics={data.topics} />}
-      </section>
+      <ResponsiveView desktop={() => <SubjectDesktopWorkspace data={data} subjectId={subjectId} lectures={lectures} nextLecture={nextLecture} lectureError={lectureError} retry={() => setRetry(value => value + 1)} />} mobile={() => <SubjectMobileWorkspace data={data} subjectId={subjectId} lectures={lectures} nextLecture={nextLecture} lectureError={lectureError} retry={() => setRetry(value => value + 1)} />} />
     </>}
   </>;
 }

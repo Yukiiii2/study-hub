@@ -13,6 +13,7 @@ function load(file) {
   if (modules.has(file)) return modules.get(file).exports;
   const output = { exports: {} }; modules.set(file, output);
   const local = (name) => {
+    if (name === "@/components/responsive-view") return { ResponsiveView: ({ desktop }) => desktop(), usePresentationMode: () => "desktop" };
     if (name === "react") return reactShim;
     if (name === "@/features/auth/auth-provider") return { useAuth: () => ({ user: { id: "test-owner", email: "reviewer@example.test" } }) };
     if (name === "next/link") return { default: ({ children, ...props }) => React.createElement("a", props, children) };

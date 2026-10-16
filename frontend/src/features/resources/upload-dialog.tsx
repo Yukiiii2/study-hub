@@ -1,11 +1,16 @@
 "use client";
 
+import { PendingLabel } from "@/components/study-ui";
+
+import { useDialogDismiss } from "@/components/ui-motion";
+
 import { useEffect, useRef, useState } from "react";
 import { getSubjectTopics, type Subject, type Topic } from "@/services/subjects";
 import { resourceError, uploadFileError, uploadResource, type Resource } from "@/services/resources";
 
 export function UploadDialog({ subjects, close, saved }: { subjects: Subject[]; close: () => void; saved: (resource: Resource) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const dismiss = useDialogDismiss(dialog, close);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -35,8 +40,8 @@ export function UploadDialog({ subjects, close, saved }: { subjects: Subject[]; 
     catch (error) { setError(resourceError(error)); }
     finally { mutationLock.current = false; setBusy(false); }
   }
-  return <dialog ref={dialog} className="planner-dialog resource-upload" aria-labelledby="resource-upload-title" aria-describedby="resource-upload-guidance" onCancel={(event) => { event.preventDefault(); if (!busy) close(); }}>
-    <div className="planner-dialog-heading"><h2 id="resource-upload-title">Upload resource</h2><button type="button" className="secondary-button" onClick={close} disabled={busy}>Close</button></div>
+  return <dialog ref={dialog} className="planner-dialog resource-upload" aria-labelledby="resource-upload-title" aria-describedby="resource-upload-guidance" onCancel={(event) => { event.preventDefault(); if (!busy) dismiss(); }}>
+    <div className="planner-dialog-heading"><h2 id="resource-upload-title">Upload resource</h2><button type="button" className="secondary-button" onClick={dismiss} disabled={busy}>Close</button></div>
     <p id="resource-upload-guidance" className="resource-note resource-upload-guidance">Text-based PDF or CSV, up to 4 MiB. Scanned PDFs cannot be processed.</p>
     <form aria-busy={busy} onSubmit={(event) => { event.preventDefault(); void upload(); }}><fieldset disabled={busy} className="planner-form-grid">
       <label className="planner-wide resource-upload-file">File<input autoFocus required type="file" aria-describedby="resource-upload-guidance" accept=".pdf,.csv,application/pdf,text/csv" onChange={(event) => { const next = event.target.files?.[0] ?? null; setFile(next); setError(next ? uploadFileError(next) : null); }} /></label>
@@ -44,6 +49,6 @@ export function UploadDialog({ subjects, close, saved }: { subjects: Subject[]; 
       <label>Subject (optional)<select value={subject} onChange={(event) => { setSubject(event.target.value); setTopic(""); }}><option value="">No subject</option>{subjects.map((value) => <option key={value.id} value={value.id}>{value.code} — {value.name}</option>)}</select></label>
       <label>Topic (optional)<select value={topic} disabled={!subject || loadingTopics || topicError} onChange={(event) => setTopic(event.target.value)}><option value="">{loadingTopics ? "Loading topics…" : "No topic"}</option>{current?.topics.map((value) => <option key={value.id} value={value.id}>{value.code ? `${value.code} — ` : ""}{value.title}</option>)}</select></label>
       {topicError && <div className="planner-field-error"><p role="alert" className="auth-error">Could not load topics. Retry before uploading.</p><button type="button" className="secondary-button" onClick={() => setTopicRetry((value) => value + 1)}>Retry topics</button></div>}
-    </fieldset>{busy && <p role="status" className="resource-note">Uploading your file and waiting for server processing. This request includes PDF text extraction or CSV validation; Ready or Failed is shown after the server responds.</p>}{error && <p className="auth-error" role="alert">{error}</p>}<div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || loadingTopics || topicError}>{busy ? "Uploading…" : "Upload resource"}</button></div></form>
+    </fieldset>{busy && <p role="status" className="resource-note">Uploading your file and waiting for server processing. This request includes PDF text extraction or CSV validation; Ready or Failed is shown after the server responds.</p>}{error && <p className="auth-error" role="alert">{error}</p>}<div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || loadingTopics || topicError}><PendingLabel pending={busy} idle="Upload resource" busy="Uploading…" /></button></div></form>
   </dialog>;
 }

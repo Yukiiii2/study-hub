@@ -1,0 +1,50 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+const ts = require('typescript');
+const file = path.join(__dirname, '../src/components/ui-motion.tsx');
+assert(fs.existsSync(file), 'Route motion must have one shared, cancellable implementation');
+let effect, reduced = false, animations = [], listeners = new Set(), seconds = true, closes = 0;
+const query = { get matches() { return reduced; }, addEventListener: (_, fn) => listeners.add(fn), removeEventListener: (_, fn) => listeners.delete(fn) };
+const moduleOutput = { exports: {} };
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
+  module: moduleOutput, exports: moduleOutput.exports,
+  require: name => { assert.equal(name, 'react'); return { useEffect: fn => { effect = fn; }, useRef: value => ({ current: value }) }; },
+  window: { matchMedia: () => query, getComputedStyle: () => ({ getPropertyValue: key => key === '--duration-normal' ? seconds ? '.2s' : '200ms' : key === '--duration-fast' ? seconds ? '.16s' : '160ms' : 'cubic-bezier(.2,.75,.25,1)' }) },
+});
+const target = { dataset: {}, close: () => closes++, animate: (frames, options) => { const a = { frames, options, canceled: false, cancel() { this.canceled = true; this.oncancel?.(); } }; animations.push(a); return a; } };
+const ref = { current: { firstElementChild: target, children: [target] } };
+const run = (reference = ref, route = '/study-plan') => { moduleOutput.exports.usePageMotion(reference, route); return effect(); };
+assert.equal(run({ current: null }), undefined, 'No DOM or browser work before the content exists');
+reduced = true; assert.equal(run(), undefined); assert.equal(animations.length, 0, 'Reduced-motion users never receive a route animation');
+reduced = false;
+let cleanup = run();
+assert.equal(animations.length, 1); assert.equal(animations[0].options.duration, 200);
+assert.equal(animations[0].frames[0].opacity, 0); assert.equal(animations[0].frames.at(-1).opacity, 1);
+assert.equal(animations[0].frames.at(-1).transform, 'none');
+assert.equal(listeners.size, 1);
+reduced = true; for (const listener of listeners) listener({ matches: true });
+assert(animations[0].canceled, 'Changing reduced motion cancels an animation already running');
+cleanup(); assert.equal(listeners.size, 0, 'Leaving a route removes its listener');
+reduced = false; cleanup = run(ref, '/focus'); cleanup();
+assert(animations[1].canceled, 'Fast navigation/unmount cancels unfinished motion');
+assert.equal(ref.current.firstElementChild, target, 'Motion never replaces the page DOM or its state');
+assert.equal(listeners.size, 0);
+console.log('PASS: route entrance, shared timing, reduced-motion changes, cancellation and no DOM replacement');
+let dismissed = 0;
+const dismiss = moduleOutput.exports.useDialogDismiss({ current: target }, () => dismissed++);
+cleanup = effect();
+dismiss(); dismiss();
+assert.equal(animations.length, 3, 'Repeated close/Escape starts only one exit');
+assert.equal(animations[2].options.duration, 160, 'Compiled CSS seconds must become WAAPI milliseconds');
+assert.equal(dismissed, 0, 'The modal remains mounted while exiting');
+assert.equal(target.dataset.motionClosing, 'true');
+reduced = true; for (const listener of listeners) listener({ matches: true });
+assert.equal(dismissed, 1, 'Switching to reduced motion closes immediately');
+animations[2].onfinish();
+assert.equal(dismissed, 1, 'A late animation completion must not dismiss twice');
+assert.equal(closes, 1, 'Close the connected native dialog before React removes it, restoring focus');
+cleanup(); assert.equal(listeners.size, 0);
+assert.equal(target.dataset.motionClosing, undefined);
+const instant = moduleOutput.exports.useDialogDismiss({ current: target }, () => dismissed++);
+instant(); assert.equal(dismissed, 2); assert.equal(animations.length, 3);
+console.log('PASS: modal exit, duplicate close protection, preference changes and cleanup');

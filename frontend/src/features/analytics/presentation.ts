@@ -4,6 +4,11 @@ export function studyDuration(seconds: number): string {
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 export type ClockAnchor = { serverTime: number; monotonicTime: number };
+/** Recovery cue, not a duration cap: the backend still owns the persisted session. */
+export function sessionSpansStudyDays(startedAt: string, serverNow: string, timezone: string): boolean {
+  const day = (instant: string) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(instant));
+  return day(startedAt) < day(serverNow);
+}
 export function elapsedSeconds(startedAt: string, anchor: ClockAnchor, monotonicNow: number): number {
   return Math.max(0, Math.floor((anchor.serverTime + Math.max(0, monotonicNow - anchor.monotonicTime) - Date.parse(startedAt)) / 1000));
 }

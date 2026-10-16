@@ -39,6 +39,17 @@ export function calendarDays(date: string, view: "month" | "week"): string[] {
   return Array.from({ length: view === "month" ? 42 : 7 }, (_, index) => dateAdd(start, index));
 }
 
+// Compact Month presentation is Sunday-first; desktop/recurrence arithmetic stays unchanged.
+export function compactMonthDays(date: string): string[] {
+  const first = `${date.slice(0, 7)}-01`;
+  const next = new Date(`${first}T12:00:00Z`);
+  next.setUTCMonth(next.getUTCMonth() + 1);
+  const monthLength = Number(dateAdd(next.toISOString().slice(0, 10), -1).slice(-2));
+  const count = Math.max(35, Math.ceil((weekday(first) + monthLength) / 7) * 7);
+  const start = dateAdd(first, -weekday(first));
+  return Array.from({ length: count }, (_, index) => dateAdd(start, index));
+}
+
 export function dateLabel(date: string, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }): string {
   return new Intl.DateTimeFormat("en", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }

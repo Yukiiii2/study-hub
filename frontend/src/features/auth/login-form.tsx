@@ -1,5 +1,7 @@
 "use client";
 
+import { PendingLabel } from "@/components/study-ui";
+
 import { InterfaceIcon } from "@/components/interface-icon";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -53,8 +55,8 @@ export function LoginForm() {
           <input id="password" name="password" type="password" autoComplete="current-password" required disabled={submitting} />
           {(setupError || error) && <p className="auth-error" role="alert">{setupError || error}</p>}
           {setupError && <button className="secondary-button" type="button" disabled={loading || submitting} onClick={retry}>Retry connection</button>}
-          <button className="primary-button" type="submit" disabled={loading || submitting || Boolean(setupError)}>
-            {loading ? "Restoring session..." : submitting ? "Signing in..." : "Sign in"}
+          <button className="primary-button" type="submit" disabled={loading || submitting || Boolean(setupError)} aria-busy={loading || submitting}>
+            <PendingLabel pending={loading || submitting} idle={"Sign in"} busy={loading ? "Restoring session..." : "Signing in..."} />
           </button>
         </form>
         <p className="auth-note">Use the account provided for your study workspace.</p>

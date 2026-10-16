@@ -1,0 +1,113 @@
+/* Shared motion: presentation only; controls, statuses and data remain authoritative.
+   Route entrances use cancellable WAAPI effects in ui-motion.tsx, never keyed page remounts. */
+:is(.primary-button,.secondary-button,.ghost-button,.danger-button,.icon-button),button[aria-busy] {
+  position:relative;
+  transition:background-color var(--duration-fast) var(--ease-state),border-color var(--duration-fast) var(--ease-state),color var(--duration-fast) var(--ease-state),opacity var(--duration-fast) var(--ease-state),transform var(--duration-instant) var(--ease-out);
+}
+:is(.nav-link,.bottom-nav-link,.shell-focus,.shell-settings,.bottom-nav-focus svg,.account-avatar) {
+  transition:background-color var(--duration-fast) var(--ease-state),border-color var(--duration-fast) var(--ease-state),color var(--duration-fast) var(--ease-state);
+}
+.bottom-nav-focus[aria-current] svg { background:var(--accent-soft); border-color:var(--accent); }
+.bottom-nav-link:active { background:var(--surface-strong); }
+:is(.view-tabs,.planner-tabs,.planner-view-controls,.study-periods,.quiz-question-navigation) > :is(button,a),
+:is(input,select,textarea,.quiz-answer,.compact-day,.compact-day-number,.status-badge,.video-progress-control) {
+  transition:background-color var(--duration-fast) var(--ease-state),border-color var(--duration-fast) var(--ease-state),color var(--duration-fast) var(--ease-state),outline-color var(--duration-fast) var(--ease-state),opacity var(--duration-fast) var(--ease-state);
+}
+:is(.subject-row,.mobile-subject-row,.resource-row,.mobile-resource-row,.quiz-row,.planner-event,.compact-agenda-event,.topic-row,.desk-agenda a,.attention-row,.mobile-attention-link) {
+  transition:background-color var(--duration-fast) var(--ease-state),border-color var(--duration-fast) var(--ease-state),transform var(--duration-instant) var(--ease-out);
+}
+:is(.primary-button,.secondary-button,.ghost-button,.danger-button):not(:disabled):not([aria-disabled="true"]):active,
+:is(a.subject-row,a.mobile-subject-row,.quiz-answer):active { transform:scale(.99); }
+:is(.compact-agenda-event,.planner-event):not(:disabled):active { background:var(--surface-strong); }
+/* Disabled controls never receive press feedback, even while a pointer remains down. */
+button:disabled { transform:none !important; }
+@media(hover:hover) and (pointer:fine) {
+  :is(.compact-day,.compact-agenda-event,.resource-row,.mobile-resource-row,.quiz-row,.planner-event,.topic-row):not(:disabled):hover { background:var(--surface-strong); }
+  :is(.subject-row,.mobile-subject-row):hover { background:var(--surface-secondary); }
+  :is(a.subject-row,a.mobile-subject-row):hover { transform:translateY(-1px); }
+}
+/* Contained indicator: no inserted icon/text width and no fake percentage. */
+.pending-label { display:inline-grid; grid-template-areas:"label"; align-items:center; justify-items:center; min-width:0; }
+.pending-label > span { grid-area:label; }
+.pending-label > [aria-hidden="true"] { visibility:hidden; }
+button[aria-busy="true"]::after { content:""; position:absolute; left:12px; right:12px; bottom:3px; height:2px; background:currentColor; opacity:.45; transform-origin:left; pointer-events:none; }
+.icon-button[aria-busy="true"]::after { left:8px; right:8px; }
+/* Native dialogs retain top-layer semantics, focus trapping, Escape and safe-area layout. */
+.planner-dialog {
+  opacity:0; transform:scale(.98);
+  transition:opacity var(--duration-fast) var(--ease-out),transform var(--duration-fast) var(--ease-out),overlay var(--duration-fast) allow-discrete,display var(--duration-fast) allow-discrete;
+}
+.planner-dialog[open] { opacity:1; transform:none; transition-duration:var(--duration-normal); }
+.planner-dialog::backdrop { opacity:0; transition:opacity var(--duration-fast) var(--ease-out),overlay var(--duration-fast) allow-discrete,display var(--duration-fast) allow-discrete; }
+.planner-dialog[open]::backdrop { opacity:1; }
+.planner-dialog[data-motion-closing="true"] { pointer-events:none; }
+.planner-dialog[data-motion-closing="true"]::backdrop { opacity:0; }
+@starting-style {
+  .planner-dialog[open] { opacity:0; transform:scale(.98); }
+  .planner-dialog[open]::backdrop { opacity:0; }
+}
+@media(min-width:601px) and (max-width:959px) {
+  .planner-dialog { transform:translateX(6px); }.planner-dialog[open] { transform:none; }
+  @starting-style { .planner-dialog[open] { transform:translateX(6px); } }
+}
+@media(max-width:600px) {
+  .planner-dialog { transform:translateY(8px); }.planner-dialog[open] { transform:none; }
+  @starting-style { .planner-dialog[open] { transform:translateY(8px); } }
+}
+/* Progressive enhancement: unsupported browsers retain immediate native disclosure. */
+@supports (interpolate-size:allow-keywords) {
+  :is(.mobile-topic-list details,.filter-panel,.study-daily-values,.mobile-today details)::details-content {
+    interpolate-size:allow-keywords; block-size:0; overflow:clip;
+    transition:block-size var(--duration-normal) var(--ease-out),content-visibility var(--duration-normal) allow-discrete;
+  }
+  :is(.mobile-topic-list details,.filter-panel,.study-daily-values,.mobile-today details)[open]::details-content { block-size:auto; }
+}
+/* Supplied final dimensions stay authoritative. Unchanged DOM never replays an entrance. */
+.study-bar-fill { width:100%; transform:scaleX(var(--progress-scale,1)); transform-origin:left; transition:transform var(--duration-normal) var(--ease-state); }
+.desk-day-track > i { transform-origin:bottom; }
+.study-chart-line { stroke-dasharray:1; stroke-dashoffset:0; }
+.focus-session,.focus-current-context,.video-row,.assessment-row-meta { transition:background-color var(--duration-normal) var(--ease-state),border-color var(--duration-normal) var(--ease-state),color var(--duration-normal) var(--ease-state); }
+/* Utilities complement existing feature classes. No delays or permanent will-change. */
+@media(prefers-reduced-motion:no-preference) {
+  .motion-enter { animation:motion-enter var(--duration-normal) var(--ease-out); }
+  .motion-fade { animation:motion-fade var(--duration-fast) var(--ease-out); }
+  :is(.study-docket,.mobile-next,.subject-list > li,.mobile-subject-row,.resource-row,.mobile-resource-row,.quiz-list > li,.assessment-groups > section,.mobile-assessment-groups li) { animation:motion-enter var(--duration-normal) var(--ease-out); }
+  :is(.desk-agenda > li,.mobile-day-events > li,.attention-row,.mobile-attention-link,.compact-agenda-list > li:not(.compact-row-leaving),.planner-event) { animation:motion-fade var(--duration-fast) var(--ease-out); }
+  :is(.assistant-response,.assistant-preview,.resource-content,.quiz-results,.quiz-explanation,.quiz-review-result,.resource-empty,.curriculum-state,.auth-error,.resource-error,.planner-notice,.study-time-notice,.focus-timer-stage,.flashcard-history-list > li) { animation:motion-fade var(--duration-normal) var(--ease-out); }
+  .compact-month-grid,.compact-week-strip { animation:calendar-settle var(--duration-normal) var(--ease-out); }
+  .compact-agenda-content { animation:agenda-settle var(--duration-fast) var(--ease-out); }
+  .compact-row-leaving { pointer-events:none; animation:row-leave var(--duration-fast) var(--ease-out) forwards; }
+  .flashcard-recall-card { animation:motion-enter var(--duration-normal) var(--ease-out); }
+  .flashcard-recall-answer { animation:recall-reveal var(--duration-normal) var(--ease-out); }
+  .quiz-answer-state { animation:motion-fade var(--duration-fast) var(--ease-out); }
+  .study-daily-chart { animation:motion-fade var(--duration-normal) var(--ease-out); }
+  .study-chart-area { transform-box:fill-box; transform-origin:bottom; animation:motion-grow-y var(--duration-slow) var(--ease-out); }
+  .study-chart-line { animation:chart-draw var(--duration-slow) var(--ease-out); }
+  .study-bar-fill { animation:motion-grow-x var(--duration-slow) var(--ease-out); }
+  .desk-day-track > i { animation:motion-grow-y var(--duration-slow) var(--ease-out); }
+  progress::-webkit-progress-value { transform-origin:left; animation:motion-grow-x var(--duration-slow) var(--ease-out); }
+  progress::-moz-progress-bar { transform-origin:left; animation:motion-grow-x var(--duration-slow) var(--ease-out); }
+  .skeleton-block > i,.auth-bootstrap-skeleton { animation:skeleton-breathe var(--duration-loading) var(--ease-state) infinite alternate; }
+  .loading-notice-mark > i { animation:loading-breathe var(--duration-pending) var(--ease-state) infinite alternate; }
+  .loading-notice-mark > i:last-child { animation-delay:var(--duration-fast); }
+  button[aria-busy="true"]::after { animation:pending-feedback var(--duration-pending) var(--ease-state) infinite alternate; }
+}
+@keyframes motion-enter { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes motion-fade { from { opacity:0; } to { opacity:1; } }
+@keyframes calendar-settle { from { opacity:.75; transform:translateX(4px); } to { opacity:1; transform:none; } }
+@keyframes agenda-settle { from { opacity:.65; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes row-leave { to { opacity:0; transform:translateY(-2px); } }
+@keyframes recall-reveal { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes motion-grow-x { from { transform:scaleX(0); } to { transform:scaleX(var(--progress-scale,1)); } }
+@keyframes motion-grow-y { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+@keyframes chart-draw { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } }
+@keyframes skeleton-breathe { from { opacity:.65; } to { opacity:.9; } }
+@keyframes loading-breathe { from { opacity:.55; } to { opacity:.9; } }
+@keyframes pending-feedback { from { transform:scaleX(.3); opacity:.25; } to { transform:scaleX(1); opacity:.5; } }
+/* CSS and running JS effects both respect preference changes. */
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+  .planner-dialog { transform:none; }
+  :is(.subject-row,.mobile-subject-row):hover { transform:none !important; }
+  :is(.primary-button,.secondary-button,.ghost-button,.danger-button,.subject-row,.mobile-subject-row,.quiz-answer,.compact-day):active { transform:none !important; }
+}

@@ -8,6 +8,8 @@ import { getAssessments } from "@/services/assessments";
 import { elapsedSeconds, type ClockAnchor } from "@/features/analytics/presentation";
 import type { DashboardExtras } from "./dashboard-view";
 import { DashboardView } from "./dashboard-view";
+import { DashboardMobileView } from "./dashboard-mobile-view";
+import { ResponsiveView } from "@/components/responsive-view";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -60,5 +62,6 @@ export function Dashboard() {
   }, [extras.focus?.active_session?.id]);
 
   const elapsed = extras.focus?.active_session && anchor ? elapsedSeconds(extras.focus.active_session.started_at, anchor, performance.now()) : 0;
-  return <DashboardView data={data} extras={extras} extrasLoading={extrasLoading} elapsed={elapsed} extraErrors={extraErrors} error={error} refreshing={refreshing} onRefresh={() => setRevision((value) => value + 1)} />;
+  const props = { data, extras, extrasLoading, elapsed, extraErrors, error, refreshing, onRefresh: () => setRevision(value => value + 1) };
+  return <ResponsiveView layout="dashboard" desktop={() => <DashboardView {...props} />} mobile={() => <DashboardMobileView {...props} />} />;
 }

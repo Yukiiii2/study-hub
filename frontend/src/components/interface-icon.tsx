@@ -1,8 +1,9 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh" | "settings" | "more";
+export type IconName = "dashboard" | "calendar" | "focus" | "subjects" | "library" | "quizzes" | "recall" | "flashcards" | "assessments" | "analytics" | "assistant" | "previous" | "next" | "plus" | "refresh" | "settings" | "more" | "account";
 
 const paths: Record<IconName, string> = {
+  account: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z M4 21v-2a8 8 0 0 1 16 0v2",
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
   calendar: "M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M3 10h18 M8 3v4 M16 3v4 M8 14h2 M14 14h2 M8 18h2",
   focus: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2",

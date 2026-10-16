@@ -6,6 +6,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "./auth-provider";
 import { getSupabaseBrowserClient } from "./supabase";
+import { AssistantProvider } from "@/features/assistant/assistant-provider";
 
 // Mounted once in the shared protected route layout, never once per page.
 export function ProtectedApp({ children }: { children: ReactNode }) {
@@ -50,12 +51,12 @@ export function ProtectedApp({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppShell utility={<AccountMenu email={user.email} signingOut={signingOut} signOut={() => void signOut()} />}>
+    <AssistantProvider key={user.id}><AppShell utility={<AccountMenu email={user.email} signingOut={signingOut} signOut={() => void signOut()} />}>
       {(error || signOutError) && <div className="auth-actions">
         <p className="auth-error" role="alert">{error || signOutError}</p>
         {error && <button className="secondary-button" onClick={retry}>Retry connection</button>}
       </div>}
       {children}
-    </AppShell>
+    </AppShell></AssistantProvider>
   );
 }

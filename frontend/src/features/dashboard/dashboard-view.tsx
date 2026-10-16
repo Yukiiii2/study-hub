@@ -6,17 +6,18 @@ import type { Assessment } from "@/services/assessments";
 import { CurriculumLoading } from "@/features/subjects/load-state";
 import { dateLabel, zonedParts } from "@/features/study-plan/dates";
 import { formatDuration } from "@/features/videos/duration";
-import { studyDuration } from "@/features/analytics/presentation";
+import { sessionSpansStudyDays, studyDuration } from "@/features/analytics/presentation";
 import { ProgressMeter, StatusBadge } from "@/components/study-ui";
 import { InterfaceIcon } from "@/components/interface-icon";
 
 export type DashboardExtras = { focus: FocusData | null; activity: AnalyticsData | null; assessments: Assessment[] | null };
-type Props = { data: DashboardData | null; refreshing: boolean; error: string | null; onRefresh: () => void; extras?: DashboardExtras; extrasLoading?: boolean; elapsed?: number; extraErrors?: string[] };
+export type DashboardViewProps = { data: DashboardData | null; refreshing: boolean; error: string | null; onRefresh: () => void; extras?: DashboardExtras; extrasLoading?: boolean; elapsed?: number; extraErrors?: string[] };
 function hoursMinutes(seconds: number) { const minutes = Math.floor(seconds / 60); return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`; }
 
-export function DashboardView({ data, refreshing, error, onRefresh, extras, extrasLoading = false, elapsed = 0, extraErrors = [] }: Props) {
+export function DashboardView({ data, refreshing, error, onRefresh, extras, extrasLoading = false, elapsed = 0, extraErrors = [] }: DashboardViewProps) {
   const summary = data?.video_summary;
   const focus = extras?.focus, activity = extras?.activity, active = focus?.active_session;
+  const older = !!active && !!focus && sessionSpansStudyDays(active.started_at, focus.server_now, focus.timezone);
   const videoSubject = data?.continue_video_subject_id ?? data?.subjects.find(subject => subject.video_count > 0)?.id;
   const videoPath = videoSubject ? `/subjects/${encodeURIComponent(videoSubject)}/videos` : null;
   const hour = data ? Number(zonedParts(data.generated_at, data.timezone).time.slice(0, 2)) : null;
@@ -38,8 +39,8 @@ export function DashboardView({ data, refreshing, error, onRefresh, extras, extr
       <section className="study-docket" aria-labelledby="dashboard-now">
         <header><span className="docket-indicator" aria-hidden="true" /><h2 id="dashboard-now">Now / Next</h2>{active && <StatusBadge tone="success">Session active</StatusBadge>}</header>
         <div className="docket-body">
-          <div className="docket-time">{active ? <strong aria-label="Active session elapsed time">{studyDuration(elapsed).padStart(8, "0")}</strong> : next ? <><strong>{eventTime(next.start_at)}</strong><span>{eventTime(next.end_at)}</span></> : <InterfaceIcon name="focus" />}</div>
-          <div className="docket-copy"><div className="docket-context">{active ? `${data.subjects.find(subject => subject.id === active.subject_id)?.code ?? "General study"} / ${active.activity_type}` : next ? <><span className="subject-marker" data-color={subjectColors.get(next.subject_id ?? "") ?? undefined} aria-hidden="true" />{next.subject_code ?? "General study"} <span>{next.event_type}</span></> : "Your next step"}</div><h2>{active ? "Continue your focused session" : next?.title ?? "Choose a study block and settle in"}</h2><p>{active ? "Your session is still recording. Return when you are ready to finish." : next?.topic_title ?? "Start independently or use your study plan for context."}</p></div>
+          <div className="docket-time" data-active={!!active || undefined}>{active ? <strong aria-label="Active session elapsed time">{studyDuration(elapsed).padStart(8, "0")}</strong> : next ? <><strong>{eventTime(next.start_at)}</strong><span>{eventTime(next.end_at)}</span></> : <InterfaceIcon name="focus" />}</div>
+          <div className="docket-copy"><div className="docket-context">{active ? `${data.subjects.find(subject => subject.id === active.subject_id)?.code ?? "General study"} / ${active.activity_type}` : next ? <><span className="subject-marker" data-color={subjectColors.get(next.subject_id ?? "") ?? undefined} aria-hidden="true" />{next.subject_code ?? "General study"} <span>{next.event_type}</span></> : "Your next step"}</div><h2>{active ? older ? "Session still open" : "Continue your focused session" : next?.title ?? "Choose a study block and settle in"}</h2><p>{active ? older ? `Started ${fullDate(active.started_at)}. Review this open session in Focus before finishing.` : "Your session is still recording. Return when you are ready to finish." : next?.topic_title ?? "Start independently or use your study plan for context."}</p></div>
           <Link className="primary-button" href={active ? "/focus" : nextPath}><InterfaceIcon name="focus" />{active ? "Return to session" : "Start Focus"}</Link>
         </div>
         <footer>{focus ? active ? "Active session restored from your saved study state." : "No active session" : extrasLoading ? "Loading session…" : "Session unavailable — open Focus to check."}<span>{data.timezone}</span></footer>

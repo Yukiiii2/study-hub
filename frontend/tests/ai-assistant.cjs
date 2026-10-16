@@ -32,7 +32,11 @@ const state = load(path.join(src, "features/assistant/draft-state.ts"));
 const saveState = load(path.join(src, "features/assistant/draft-save.ts"));
 const { AIResponseView } = load(path.join(src, "features/assistant/response-view.tsx"));
 const { AIDraftPreview } = load(path.join(src, "features/assistant/draft-preview.tsx"));
-const { AssistantWorkspace } = load(path.join(src, "features/assistant/assistant-page.tsx"));
+const { AssistantWorkspaceView, useAssistantController } = load(path.join(src, "features/assistant/assistant-page.tsx"));
+const { assistantPageContext } = load(path.join(src, "features/assistant/page-context.ts"));
+assert.equal(typeof useAssistantController, "function", "The full workspace and floating panel need one reusable request controller");
+// Exercise the same controller used by the authenticated provider without a browser renderer.
+function AssistantWorkspace({ initial }) { return AssistantWorkspaceView({ controller: useAssistantController(initial) }); }
 const { QuestionEditor } = load(path.join(src, "features/quizzes/question-editor.tsx"));
 const { CardEditor } = load(path.join(src, "features/flashcards/card-editor.tsx"));
 const { ExplainAnswerAction } = load(path.join(src, "features/assistant/explain-answer.tsx"));
@@ -58,6 +62,12 @@ const gate = new state.AIRequestGate(), ticket = gate.begin(); assert.equal(gate
 function tree(component, props, store = { values: [], index: 0 }) { harness = store; store.index = 0; try { return { node: component(props), store }; } finally { harness = null; } }
 function find(node, predicate) { if (!node) return null; if (Array.isArray(node)) { for (const child of node) { const match = find(child, predicate); if (match) return match; } return null; } if (typeof node !== "object") return null; if (predicate(node)) return node; return find(node.props?.children, predicate); }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
+const sourceId = "11111111-1111-4111-8111-111111111111";
+assert.equal(assistantPageContext(`/subjects/${sourceId}/videos`).source.subject_id, sourceId);
+assert.equal(assistantPageContext(`/library/${sourceId}`).source.resource_id, sourceId);
+assert.equal(Object.keys(assistantPageContext("/quizzes/attempts/private-attempt").source).length, 0, "Page context never scrapes quiz answers or introduces unsupported IDs");
+assert.equal(Object.keys(assistantPageContext("/library/not-an-id").source).length, 0);
+assert.equal(assistantPageContext("/study-plan").label, "Study Plan");
 (async () => {
   await ai.explainAIAnswer({ attempt_id: "attempt", question_id: "question" });
   assert.equal(calls.at(-1)[0], "/api/ai/explain-answer"); assert.equal(JSON.stringify(calls.at(-1)[1]), '{"attempt_id":"attempt","question_id":"question"}');
@@ -72,11 +82,26 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   let rendered = tree(AssistantWorkspace, { initial: {} }, workspace.store);
   assert(find(rendered.node, (node) => node.type === AIDraftPreview), "Successful generation creates only an editable preview");
   assert.equal(calls.length, 1, "Generation never calls persistence endpoints");
+  let session = tree(useAssistantController, {}, workspace.store);
+  assert.equal(session.node.turns.length, 1, "Responses live in the shared controller, not a panel mount");
+  assert.equal(session.node.turns[0].prompt, "Generate question drafts");
+  const beforeNavigation = session.node.turns[0].response;
+  session = tree(useAssistantController, {}, workspace.store);
+  assert.equal(session.node.turns[0].response, beforeNavigation, "Reading shared state during navigation does not create requests or lose responses");
+  assert.equal(calls.length, 1);
   post = async () => { throw new ApiError("provider-secret", 503); };
   find(rendered.node, (node) => node.type === "form").props.onSubmit({ preventDefault() {} }); await tick();
   rendered = tree(AssistantWorkspace, { initial: {} }, workspace.store);
   assert(find(rendered.node, (node) => node.type === AIDraftPreview), "Transient errors preserve current preview");
   assert(!JSON.stringify(rendered.node).includes("provider-secret"));
+  session = tree(useAssistantController, {}, workspace.store);
+  assert.equal(session.node.turns.length, 1, "A failed retry preserves completed conversation turns");
+  session.node.resetConversation();
+  assert.equal(tree(useAssistantController, {}, workspace.store).node.turns.length, 0);
+  const invalidLink = tree(useAssistantController, { attempt_id: "not-an-id", mode: "cards" });
+  const previousCalls = calls.length;
+  invalidLink.node.generate();
+  assert.equal(calls.length, previousCalls, "Incomplete quiz source links never issue an ungrounded request");
   calls.length = 0; post = async () => ({ id: "confirmed-question" });
   const questionEditor = tree(QuestionEditor, { initial: question, close() {}, saved() {} });
   const questionForm = find(questionEditor.node, (node) => node.type === "form");
@@ -95,7 +120,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   uncertainForm.props.onSubmit({ preventDefault() {} }); await tick();
   assert.equal(calls.length, 1, "A lost AI-card save confirmation must block repeated POSTs"); assert.equal(uncertain, 1);
   const unknownView = tree(CardEditor, { initial: card, close() {}, saved() {} }, uncertainEditor.store);
-  assert(find(unknownView.node, (node) => node.type === "button" && node.props.children === "Confirm and save flashcard").props.disabled);
+  assert(find(unknownView.node, (node) => node.type === "button" && (node.props.children?.props?.idle ?? node.props.children) === "Confirm and save flashcard").props.disabled);
   post = async () => ({ id: "confirmed" });
   calls.length = 0;
   const draftView = tree(AIDraftPreview, { response: questions });
@@ -105,5 +130,14 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
   const explanation = tree(ExplainAnswerAction, { attemptId: "completed-attempt", questionId: "snapshot-question" });
   find(explanation.node, (node) => node.type === "button").props.onClick(); await tick();
   assert.equal(Object.keys(calls[0][1]).sort().join(","), "attempt_id,question_id", "Explanation must send only canonical snapshot IDs");
+  calls.length = 0; post = async () => ({ ...metadata, answer: "Synthetic response" });
+  let bounded = tree(useAssistantController, { subject_id: sourceId, prompt: "Explain the concept" });
+  for (let index = 0; index < 23; index++) {
+    await bounded.node.generate();
+    bounded = tree(useAssistantController, {}, bounded.store);
+  }
+  assert.equal(bounded.node.turns.length, 20, "Session-memory transcript remains bounded");
+  assert.equal(calls.length, 23);
+  assert(calls.every(([, body]) => Object.keys(body).sort().join(",") === "prompt,resource_id,subject_id,topic_id"), "Transcript and page datasets never enter the stateless API payload");
   console.log("PASS: AI API intents, source escaping, bounded one-flight generation, retained drafts, explicit per-item save, receipt preservation and suspended AI cards");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

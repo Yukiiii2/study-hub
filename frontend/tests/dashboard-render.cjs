@@ -100,7 +100,7 @@ assert.equal((overview.match(/--day-height:0%/g) || []).length, 6, "Six zero day
 assert.equal((overview.match(/class="desk-day-track"/g) || []).length, 7);
 assert(overview.includes('class="study-docket"') && overview.includes('class="desk-day-grid"') && !overview.includes('class="summary-strip'), "Composition is no longer a row of equal metric cards");
 for (const href of ["/focus", "/study-plan", "/recall", "/quizzes", "/library"]) assert(overview.includes(`href="${href}"`));
-const activeFocus = render(data, { extras: { focus: { ...focus, active_session: { subject_id: "far-id", activity_type: "reading" } }, activity, assessments: [] }, elapsed: 3723 });
+const activeFocus = render(data, { extras: { focus: { ...focus, active_session: { subject_id: "far-id", activity_type: "reading", started_at: data.generated_at } }, activity, assessments: [] }, elapsed: 3723 });
 assert(activeFocus.includes("01:02:03") && activeFocus.includes("Return to session") && activeFocus.includes("FAR / reading"));
 const zeroActivity = render(data, { extras: { focus: { ...focus, today_seconds: 0 }, activity: { ...activity, summary: { total_seconds: 0 }, daily: activity.daily.map((day) => ({ ...day, duration_seconds: 0 })) }, assessments: [] } });
 assert.equal((zeroActivity.match(/--day-height:0%/g) || []).length, 7, "Empty activity uses only subdued baselines");

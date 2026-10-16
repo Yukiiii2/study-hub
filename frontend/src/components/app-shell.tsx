@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { InterfaceIcon, type IconName } from "@/components/interface-icon";
+import { usePageMotion } from "@/components/ui-motion";
+import { GlobalAssistant } from "@/features/assistant/global-assistant";
 
 const navigationGroups: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
   { label: "Your day", items: [{ href: "/", label: "Today", icon: "calendar" }, { href: "/study-plan", label: "Plan", icon: "calendar" }] },
@@ -26,7 +28,10 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
   const moreTrigger = useRef<HTMLButtonElement>(null);
   const moreNavigation = useRef(false);
   const content = useRef<HTMLElement>(null);
+  usePageMotion(content, pathname);
   const [moreOpen, setMoreOpen] = useState(false);
+  const studyActive = isActive(pathname, "/subjects") || isActive(pathname, "/library");
+  const moreActive = !["/", "/study-plan", "/focus"].includes(pathname) && !studyActive;
   const currentTitle = pathname === "/focus" ? "Focus" : pathname === "/settings" ? "Settings" : pathname === "/question-bank" ? "Question Bank" : navigationGroups.flatMap((group) => group.items).find((item) => isActive(pathname, item.href))?.label ?? "Study workspace";
   useEffect(() => {
     if (more.current?.open) { moreNavigation.current = true; more.current.close(); setMoreOpen(false); content.current?.focus(); }
@@ -43,9 +48,10 @@ export function AppShell({ children, utility }: { children: ReactNode; utility?:
       <header className="utility-header"><div className="desktop-context"><span>{currentTitle}</span></div><Link className="mobile-brand" href="/"><span className="brand-mark"><InterfaceIcon name="subjects" /></span>Study Hub</Link><span className="mobile-context">{currentTitle}</span><div className="shell-account">{utility}</div></header>
       <main ref={content} id="main-content" tabIndex={-1} className="main-content">{children}</main>
       <nav className="bottom-navigation" aria-label="Mobile navigation">
-        {[{ href: "/", label: "Today", icon: "calendar" as const }, { href: "/study-plan", label: "Plan", icon: "calendar" as const }, { href: "/focus", label: "Focus", icon: "focus" as const }, { href: "/subjects", label: "Study", icon: "subjects" as const }].map((item) => <Link href={item.href} key={item.href} className={`bottom-nav-link${item.href === "/focus" ? " bottom-nav-focus" : ""}`} aria-current={isActive(pathname, item.href) ? "page" : undefined}><InterfaceIcon name={item.icon} /><span>{item.label}</span></Link>)}
-        <button ref={moreTrigger} className="bottom-nav-link" aria-label="More study tools" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => { more.current?.showModal(); setMoreOpen(true); }}><InterfaceIcon name="more" /><span>More</span></button>
+        {[{ href: "/", label: "Today", icon: "calendar" as const }, { href: "/study-plan", label: "Plan", icon: "calendar" as const }, { href: "/focus", label: "Focus", icon: "focus" as const }, { href: "/subjects", label: "Study", icon: "subjects" as const }].map((item) => <Link href={item.href} key={item.href} className={`bottom-nav-link${item.href === "/focus" ? " bottom-nav-focus" : ""}`} aria-current={(item.href === "/subjects" ? studyActive : isActive(pathname, item.href)) ? "page" : undefined}><InterfaceIcon name={item.icon} /><span>{item.label}</span></Link>)}
+        <button ref={moreTrigger} className="bottom-nav-link" aria-current={moreActive ? "page" : undefined} aria-label="More study tools" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => { more.current?.showModal(); setMoreOpen(true); }}><InterfaceIcon name="more" /><span>More</span></button>
       </nav>
+      <GlobalAssistant />
     </div>
     <dialog ref={more} className="planner-dialog shell-more" aria-labelledby="more-title" onClose={() => { setMoreOpen(false); if (!moreNavigation.current) moreTrigger.current?.focus(); moreNavigation.current = false; }}><header className="planner-dialog-heading"><h2 id="more-title">Study tools</h2><button className="ghost-button" onClick={() => more.current?.close()}>Close</button></header><Navigation /><Link className="nav-link" href="/question-bank"><InterfaceIcon name="quizzes" />Question Bank</Link><Link className="nav-link" href="/settings"><InterfaceIcon name="settings" />Settings</Link></dialog>
   </div>;

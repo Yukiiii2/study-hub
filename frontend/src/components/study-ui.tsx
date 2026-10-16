@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 
+/** Both labels reserve one grid cell; only the current label is visible/announced. */
+export function PendingLabel({ pending, idle, busy }: { pending: boolean; idle: ReactNode; busy: ReactNode }) {
+  return <span className="pending-label" data-pending={pending}><span aria-hidden={pending}>{idle}</span><span aria-hidden={!pending}>{busy}</span></span>;
+}
+
 /** Presentation only: callers retain data, actions and status semantics. */
 export function SectionHeader({ title, titleId, detail, actions }: {
   title: string; titleId?: string; detail?: ReactNode; actions?: ReactNode;
@@ -34,6 +39,6 @@ export type SkeletonLayout = "rows" | "detail" | "chart" | "calendar" | "dashboa
 export function ContentSkeleton({ label = "Loading study data…", layout = "rows" }: { label?: string; layout?: SkeletonLayout }) {
   return <div className="content-skeleton" data-layout={layout} role="status" aria-live="polite" aria-busy="true">
     <span className="skeleton-label">{label}</span>
-    <div className="skeleton-content" aria-hidden="true">{Array.from({ length: layout === "calendar" ? 14 : 3 }, (_, index) => <div className="skeleton-block" key={index}><i /><i /><i /></div>)}</div>
+    <div className="skeleton-content" aria-hidden="true">{Array.from({ length: layout === "calendar" ? 35 : 3 }, (_, index) => <div className="skeleton-block" key={index}><i /><i /><i /></div>)}</div>
   </div>;
 }

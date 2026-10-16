@@ -10,6 +10,7 @@ function load(file) {
   if (cache.has(file)) return cache.get(file).exports;
   const module = { exports: {} }; cache.set(file, module);
   function local(name) {
+    if (name === "@/components/responsive-view") return { ResponsiveView: ({ desktop }) => desktop(), usePresentationMode: () => "desktop" };
     if (name === 'react') return { ...React, useState: value => mutationMode ? [typeof value === 'function' ? value() : value, () => {}] : React.useState(value), useRef: value => mutationMode ? { current: value } : React.useRef(value), useEffect: effect => mutationMode ? undefined : React.useEffect(effect), useCallback: (fn, deps) => mutationMode ? fn : React.useCallback(fn, deps) };
     if (name === '@/services/flashcards') return { updateDeck: () => { saves++; return new Promise(() => {}); }, flashcardError: () => 'Save failed' };
     if (name === './use-study-time-load') return { useStudyTimeLoad: () => reads[readIndex++] };

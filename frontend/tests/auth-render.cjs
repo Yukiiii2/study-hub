@@ -17,6 +17,9 @@ function load(file) {
   const requireLocal = (name) => {
     if (name === "./auth-provider") return { useAuth: () => state };
     if (name === "./supabase") return { getSupabaseBrowserClient: () => { throw Error("Unexpected SDK call during render"); } };
+    // This suite verifies the guard, not the assistant's API-backed controller.
+    if (name === "@/features/assistant/assistant-provider") return { AssistantProvider: ({ children }) => children };
+    if (name === "@/features/assistant/global-assistant") return { GlobalAssistant: () => null };
     if (name === "react") return { ...React, useEffect: (effect) => effect() };
     if (name === "react/jsx-runtime") {
       const runtime = require(name);
@@ -73,7 +76,7 @@ assert(shellHtml.includes('aria-label="Mobile navigation"'));
 for (const label of ["Today", "Plan", "Focus", "Study", "More"]) assert(shellHtml.includes(label));
 const accountHtml = render({ loading: false, session, user: { ...user, email: "reviewer@example.test" }, error: null });
 assert(accountHtml.includes('<summary aria-label="Account menu" title="Account">') && accountHtml.includes('href="/settings"'));
-assert(accountHtml.includes('class="account-avatar" aria-hidden="true">R</span>'), "Compact avatar uses an accessible Account disclosure");
+assert(accountHtml.includes('class="account-avatar" aria-hidden="true"><svg'), "Account uses a deliberate profile control rather than an unstyled initial");
 assert(accountHtml.includes('class="account-menu-email">reviewer@example.test</p>'), "Identity belongs inside the disclosure");
 assert(!accountHtml.includes('class="account-email"'), "Full email is no longer permanently shown in the top bar");
 let accountFocused = false;

@@ -5,6 +5,7 @@ import { getSubjects, getSubjectTopics, type Subject, type Topic } from "@/servi
 import { getResources, type Resource } from "@/services/resources";
 import { ContentSkeleton, LoadingNotice, type SkeletonLayout } from "@/components/study-ui";
 import { quizError } from "@/services/quizzes";
+import { useDialogDismiss } from "@/components/ui-motion";
 
 export function useQuizLoad<T>(loader: (signal: AbortSignal) => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
@@ -21,12 +22,14 @@ export function LoadNotice({ loading, error, retry, hasData = false, label = "Lo
   return <>{loading && (hasData ? <LoadingNotice>Refreshing… Showing the last loaded data.</LoadingNotice> : <ContentSkeleton label={label} layout={layout} />)}{error && <div className="resource-error"><p className="auth-error" role="alert">{error}{hasData && " Showing the last loaded data."}</p><button type="button" className="secondary-button" disabled={loading} onClick={retry}>Try again</button></div>}</>;
 }
 export function Pagination({ offset, total, change, busy = false }: { offset: number; total: number; change: (offset: number) => void; busy?: boolean }) {
+  if (total === 0 && offset === 0) return null;
   return <nav className="resource-pagination" aria-label="Study data pagination"><span>{total ? `${offset + 1}–${Math.min(offset + 20, total)} of ${total}` : "0 results"}</span><button type="button" className="secondary-button" disabled={busy || !offset} onClick={() => change(Math.max(0, offset - 20))}>Previous</button><button type="button" className="secondary-button" disabled={busy || offset + 20 >= total} onClick={() => change(offset + 20)}>Next</button></nav>;
 }
 export function QuizDialog({ title, close, busy = false, children }: { title: string; close: () => void; busy?: boolean; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const dismiss = useDialogDismiss(dialog, close);
   useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
-  return <dialog ref={dialog} className="planner-dialog quiz-dialog" aria-label={title} onCancel={(event) => { event.preventDefault(); if (!busy) close(); }}><div className="planner-dialog-heading"><h2>{title}</h2><button type="button" className="secondary-button" disabled={busy} onClick={close}>Close</button></div>{children}</dialog>;
+  return <dialog ref={dialog} className="planner-dialog quiz-dialog" aria-label={title} onCancel={(event) => { event.preventDefault(); if (!busy) dismiss(); }}><div className="planner-dialog-heading"><h2>{title}</h2><button type="button" className="secondary-button" disabled={busy} onClick={dismiss}>Close</button></div>{children}</dialog>;
 }
 export function Associations({ subject, topic, changeSubject, changeTopic, disabled = false }: { subject: string; topic: string; changeSubject: (id: string) => void; changeTopic: (id: string) => void; disabled?: boolean }) {
   const subjects = useQuizLoad<Subject[]>(useCallback((signal) => getSubjects(signal), []));

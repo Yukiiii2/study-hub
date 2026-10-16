@@ -1,15 +1,19 @@
 "use client";
 
+import { PendingLabel } from "@/components/study-ui";
+
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { getSubjectTopics, type Subject, type Topic } from "@/services/subjects";
 import { createEvent, createTask, deleteEvent, deleteTask, eventTypes, getEvent, plannerError, scheduleTask, updateEvent, updateTask, type EventCreate, type EventStatus, type EventType, type StudyEvent, type StudyTask, type TaskInput } from "@/services/study-plan";
 import { localToInstant, weekday, zonedParts } from "./dates";
+import { useDialogDismiss } from "@/components/ui-motion";
 
 function Dialog({ title, busy, close, children }: { title: string; busy: boolean; close: () => void; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const dismiss = useDialogDismiss(dialog, close);
   useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
-  return <dialog ref={dialog} className="planner-dialog" aria-labelledby="planner-dialog-title" onCancel={(event) => { event.preventDefault(); if (!busy) close(); }}>
-    <div className="planner-dialog-heading"><h2 id="planner-dialog-title">{title}</h2><button type="button" className="secondary-button" disabled={busy} onClick={close} aria-label="Close dialog">Close</button></div>
+  return <dialog ref={dialog} className="planner-dialog" aria-labelledby="planner-dialog-title" onCancel={(event) => { event.preventDefault(); if (!busy) dismiss(); }}>
+    <div className="planner-dialog-heading"><h2 id="planner-dialog-title">{title}</h2><button type="button" className="secondary-button" disabled={busy} onClick={dismiss} aria-label="Close dialog">Close</button></div>
     {children}
   </dialog>;
 }
@@ -123,9 +127,9 @@ export function EventDialog({ event, task, date, time = "09:00", timezone, subje
         <label className="planner-wide">Notes<textarea rows={3} maxLength={10000} value={fields.notes} onChange={(event) => change("notes", event.target.value)} /></label>
       </fieldset>
       {error && <p className="auth-error" role="alert">{error}</p>}
-      {confirmDelete && <div className="planner-delete-confirm"><p>Delete {scope === "series" ? "the entire series" : recurringOccurrence ? "only this occurrence" : "this event"}? Recorded study sessions are kept.</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>{pendingAction === "delete" ? "Deleting…" : "Confirm deletion"}</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</button></div>}
-      <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || switching || !!topicState.error || topicState.loading}>{pendingAction === "save" ? "Saving…" : task ? "Schedule task" : "Save event"}</button>
-        {event && <><button type="button" className="secondary-button" disabled={busy || switching || scope === "series"} onClick={async () => { if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("start"); setError(null); try { await beginSession(event); close(); } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); } }}>{pendingAction === "start" ? "Starting…" : "Start study session"}</button><button type="button" className="secondary-button planner-danger" disabled={busy || switching} onClick={() => setConfirmDelete(true)}>Delete {scope === "series" ? "series" : "event"}</button></>}
+      {confirmDelete && <div className="planner-delete-confirm"><p>Delete {scope === "series" ? "the entire series" : recurringOccurrence ? "only this occurrence" : "this event"}? Recorded study sessions are kept.</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()} aria-busy={pendingAction === "delete"}><PendingLabel pending={pendingAction === "delete"} idle={"Confirm deletion"} busy={"Deleting…"} /></button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</button></div>}
+      <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || switching || !!topicState.error || topicState.loading}><PendingLabel pending={pendingAction === "save"} idle={task ? "Schedule task" : "Save event"} busy="Saving…" /></button>
+        {event && <><button type="button" className="secondary-button" disabled={busy || switching || scope === "series"} onClick={async () => { if (mutationLock.current) return; mutationLock.current = true; setBusy(true); setPendingAction("start"); setError(null); try { await beginSession(event); close(); } catch (error) { setError(plannerError(error)); } finally { mutationLock.current = false; setBusy(false); setPendingAction(null); } }} aria-busy={pendingAction === "start"}><PendingLabel pending={pendingAction === "start"} idle={"Start study session"} busy={"Starting…"} /></button><button type="button" className="secondary-button planner-danger" disabled={busy || switching} onClick={() => setConfirmDelete(true)}>Delete {scope === "series" ? "series" : "event"}</button></>}
       </div>
     </form>
   </Dialog>;
@@ -171,6 +175,6 @@ export function TaskDialog({ task, timezone, subjects, saved, close }: { task?: 
     {task?.scheduled_event_id && status === "pending" && status !== task.status && <p className="planner-note planner-wide">Returning this task to pending removes its calendar link. The existing calendar event remains and can be managed separately.</p>}
     <label className="planner-wide">Due date and time (optional)<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label><p className="planner-note planner-wide">Due time uses {timezone}. Scheduling a task creates its linked calendar event.</p>
     </fieldset>{error && <p className="auth-error" role="alert">{error}</p>}
-    {confirmDelete && <div className="planner-delete-confirm"><p>Delete this task?{task?.scheduled_event_id ? " Its calendar event remains." : ""}</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()}>{pendingAction === "delete" ? "Deleting…" : "Confirm deletion"}</button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep task</button></div>}
-    <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || topicState.loading || !!topicState.error}>{pendingAction === "save" ? "Saving…" : "Save task"}</button>{task && <button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>Delete task</button>}</div></form></Dialog>;
+    {confirmDelete && <div className="planner-delete-confirm"><p>Delete this task?{task?.scheduled_event_id ? " Its calendar event remains." : ""}</p><button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => void remove()} aria-busy={pendingAction === "delete"}><PendingLabel pending={pendingAction === "delete"} idle={"Confirm deletion"} busy={"Deleting…"} /></button><button type="button" className="secondary-button" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep task</button></div>}
+    <div className="planner-dialog-actions"><button className="primary-button" aria-busy={busy} disabled={busy || topicState.loading || !!topicState.error}><PendingLabel pending={pendingAction === "save"} idle="Save task" busy="Saving…" /></button>{task && <button type="button" className="secondary-button planner-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>Delete task</button>}</div></form></Dialog>;
 }

@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript'),React=require('react');
+const file=path.join(__dirname,'../src/components/responsive-view.tsx');
+assert(fs.existsSync(file),'Responsive presentation must select one tree without changing the data controller');
+let snapshot=null,subscription,getClient,getServer;
+const moduleUnderTest={exports:{}};
+const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+let listener,adds=0,removes=0;const query={matches:true,addEventListener:(_,fn)=>{listener=fn;adds++},removeEventListener:()=>removes++};
+vm.runInNewContext(code,{module:moduleUnderTest,exports:moduleUnderTest.exports,window:{matchMedia:()=>query},Set,require:name=>name==='react'?{...React,useSyncExternalStore:(s,c,ss)=>{subscription=s;getClient=c;getServer=ss;return snapshot}}:name==='./study-ui'?{ContentSkeleton:()=>null}:require(name)});
+const {ResponsiveView}=moduleUnderTest.exports;let mobile=0,desktop=0;
+const props={mobile:()=>{mobile++;return 'mobile'},desktop:()=>{desktop++;return 'desktop'}};
+ResponsiveView(props);assert.equal(mobile+desktop,0,'Unknown viewport never flashes desktop on a phone');assert.equal(getServer(),null);
+const off1=subscription(()=>{}),off2=subscription(()=>{});assert.equal(adds,1,'All responsive users share one media listener');assert.equal(getClient(),'mobile');
+snapshot='mobile';assert.equal(ResponsiveView(props),'mobile');assert.equal(desktop,0);
+snapshot='desktop';assert.equal(ResponsiveView(props),'desktop');assert.equal(mobile,1);
+off1();assert.equal(removes,0);off2();assert.equal(removes,1);
+console.log('PASS: hydration-safe initial presentation, one mounted layout, shared listener and cleanup');

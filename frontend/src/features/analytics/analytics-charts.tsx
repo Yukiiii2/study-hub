@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { dateLabel, weekday } from "@/features/study-plan/dates";
 import type { DailyActivity } from "@/services/analytics";
 import { studyDuration } from "./presentation";
 
-export function DailyChart({ daily }: { daily: DailyActivity[] }) {
+export function DailyChart({ daily, compact = false }: { daily: DailyActivity[]; compact?: boolean }) {
   const maximum = Math.max(1, ...daily.map((day) => day.duration_seconds));
   const x = (index: number) => 20 + index / Math.max(1, daily.length - 1) * 760;
-  const y = (seconds: number) => 160 - seconds / maximum * 140;
+  const baseline = compact ? 90 : 160;
+  const y = (seconds: number) => baseline - seconds / maximum * (compact ? 70 : 140);
   return <>
     <div className="study-chart-scale"><span>{studyDuration(maximum === 1 && !daily.some((day) => day.duration_seconds) ? 0 : maximum)}</span><span>Completed study time</span></div>
-    <svg className="study-daily-chart" viewBox="0 0 800 180" role="img" aria-label={`Daily completed study time, ${daily.length} days. Exact values are available in Daily values.`}>
-      <line x1="20" y1="160" x2="780" y2="160" className="study-chart-baseline" />
-      <polygon points={`20,160 ${daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} 780,160`} className="study-chart-area" />
-      <polyline points={daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} fill="none" className="study-chart-line" />
+    <svg key={`${daily[0]?.date}/${daily[daily.length - 1]?.date}`} className="study-daily-chart" data-compact={compact || undefined} viewBox={`0 0 800 ${compact ? 110 : 180}`} role="img" aria-label={`Daily completed study time, ${daily.length} days. Exact values are available in Daily values.`}>
+      <line x1="20" y1={baseline} x2="780" y2={baseline} className="study-chart-baseline" />
+      <polygon points={`20,${baseline} ${daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} 780,${baseline}`} className="study-chart-area" />
+      <polyline pathLength={1} points={daily.map((day, index) => `${x(index)},${y(day.duration_seconds)}`).join(" ")} fill="none" className="study-chart-line" />
       {daily.map((day, index) => <circle key={day.date} cx={x(index)} cy={y(day.duration_seconds)} r={daily.length <= 30 ? 3 : 2} className="study-chart-point"><title>{`${day.date}: ${studyDuration(day.duration_seconds)}, ${day.session_count} sessions`}</title></circle>)}
     </svg>
     <div className="study-chart-scale"><span>0:00:00 · {daily[0] && dateLabel(daily[0].date)}</span><span>{daily.length > 0 && dateLabel(daily[daily.length - 1].date)}</span></div>
@@ -42,5 +43,5 @@ export function CalendarHeatmap({ daily }: { daily: DailyActivity[] }) {
 }
 
 export function TimeBar({ label, seconds, maximum, planned = false }: { label: string; seconds: number; maximum: number; planned?: boolean }) {
-  return <div className="study-time-bar"><span>{label}</span><div className="study-bar-track" aria-hidden="true"><div className="study-bar-fill" data-planned={planned} style={{ width: `${maximum ? seconds / maximum * 100 : 0}%` }} /></div><strong>{studyDuration(seconds)}</strong></div>;
+  return <div className="study-time-bar"><span>{label}</span><div className="study-bar-track" aria-hidden="true"><div className="study-bar-fill" data-planned={planned} style={{ "--progress-scale": maximum ? seconds / maximum : 0 } as CSSProperties} /></div><strong>{studyDuration(seconds)}</strong></div>;
 }

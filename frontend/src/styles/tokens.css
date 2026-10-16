@@ -54,7 +54,14 @@
   --text-input: 16px;
   --text-section: 18px;
   --control-height: 44px;
+  --duration-instant: 90ms;
   --duration-fast: 160ms;
+  --duration-normal: 200ms;
+  --duration-slow: 280ms;
+  --ease-out: cubic-bezier(.2,.75,.25,1);
+  --ease-state: cubic-bezier(.4,0,.2,1);
+  --duration-loading: 1800ms;
+  --duration-pending: 1200ms;
   --dashboard-canvas: var(--background);
   --dashboard-panel: var(--surface);
   --dashboard-elevated: var(--surface-secondary);
@@ -63,4 +70,7 @@
   --dashboard-feature-radius: 13px;
   --bottom-nav-height: 68px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-gutter: 16px;
+  --mobile-section-gap: 24px;
+  --mobile-panel-padding: 16px;
 }

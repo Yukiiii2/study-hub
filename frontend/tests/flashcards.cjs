@@ -81,7 +81,7 @@ assert(editor.includes("<dialog") && editor.includes('maxLength="5000"') && edit
 assert(render(DeckEditor, { close() {}, saved() {} }).includes("Save deck"));
 const history = render(CardHistoryView, { reviews: [review], timezone: "America/Los_Angeles" });
 assert(history.includes("Original front") && history.includes("Original back") && history.includes("Oct 8, 2026, 5:00 PM") && history.includes("3 days"));
-assert(render(FlashcardLibrary).includes("Flashcards") && render(FlashcardLibrary).includes("All statuses") && render(FlashcardLibrary).includes("New deck"));
+assert(render(FlashcardLibrary).includes("Flashcards") && render(FlashcardLibrary).includes("All statuses") && render(FlashcardLibrary).includes("Decks") && !render(FlashcardLibrary).includes("New deck"));
 assert(render(RecallPage).includes("Recall") && render(RecallPage).includes("Upcoming"));
 assert.equal(RecallPage().key, authOwner, "Switching account must remount all private recall state");
 authOwner = null;
@@ -89,7 +89,7 @@ assert.equal(render(RecallPage), "", "No recall content renders without the shar
 authOwner = owner;
 loadOverrides = [[], { cards: [], total: 0, filters: { offset: 0 } }, { decks: [], total: 0, filters: { offset: 0 } }, { decks: [], total: 0 }];
 const emptyLibrary = render(FlashcardLibrary);
-assert(emptyLibrary.includes("No cards match this view") && emptyLibrary.includes("No decks match this view"));
+assert(emptyLibrary.includes("No cards match this view") && !emptyLibrary.includes("No decks match this view"), "Only the selected management tab is mounted");
 loadOverrides = [[], { cards: [], total: 0, filters: { offset: 0 }, summary: { overdue: 0, due_today: 0, upcoming: 0 }, timezone: "Asia/Manila", as_of: card.next_review_at }, { decks: [], total: 0 }];
 assert(render(RecallPage).includes("No cards remain in this loaded view"));
 loadOverrides = null;

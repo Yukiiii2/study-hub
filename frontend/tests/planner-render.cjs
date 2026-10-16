@@ -9,7 +9,8 @@ function load(file) {
   if (modules.has(file)) return modules.get(file).exports;
   const module = { exports: {} }; modules.set(file, module);
   const local = (name) => {
-    if (name === "react") return { ...React, useEffect: () => {}, useState: () => [states[stateIndex++], () => {}] };
+    if (name === "@/components/responsive-view") return { ResponsiveView: ({ desktop }) => desktop(), usePresentationMode: () => "desktop" };
+    if (name === "react" && file.endsWith("study-planner.tsx")) return { ...React, useEffect: () => {}, useState: () => [states[stateIndex++], () => {}] };
     if (name === "@/services/api" || name === "./api") return { ApiError: class extends Error {} };
     if (name.startsWith("@/") || name.startsWith(".")) {
       const base = name.startsWith("@/") ? path.join(src, name.slice(2)) : path.resolve(path.dirname(file), name);
@@ -25,9 +26,9 @@ const { StudyPlanner } = load(path.join(src, "features/study-plan/study-planner.
 const { calendarDays, dateAdd } = load(path.join(src, "features/study-plan/dates.ts"));
 function render({ initial = false, eventLoading = false, eventError = null, error = null, tab = "calendar", retained = false } = {}) {
   const days = calendarDays("2026-10-10", "month");
-  const period = initial || (!retained && (eventLoading || eventError)) ? null : { key: JSON.stringify([days[0], dateAdd(days.at(-1), 1), "UTC", tab, "month"]), days, view: "month", anchor: "2026-10-10", tab, today: "2026-10-10" };
+  const period = initial || (!retained && (eventLoading || eventError)) ? null : { key: JSON.stringify([dateAdd(days[0], -1), dateAdd(days.at(-1), 1), "UTC", tab, "month"]), days, view: "month", anchor: "2026-10-10", tab, today: "2026-10-10" };
   states = [initial ? null : { timezone: "UTC", active_session: null }, [], [], [], tab, "month", "2026-10-10", 0, error, eventError, null, null, initial, eventLoading, false, null];
-  states.push(period, !initial, !initial);
+  states.push(period, !initial, !initial, "");
   stateIndex = 0;
   return renderToStaticMarkup(React.createElement(StudyPlanner));
 }

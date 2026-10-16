@@ -9,6 +9,7 @@ function load(file) {
   if (modules.has(file)) return modules.get(file).exports;
   const module = { exports: {} }; modules.set(file, module);
   function local(name) {
+    if (name === "@/components/responsive-view") return { ResponsiveView: ({ desktop }) => desktop(), usePresentationMode: () => "desktop" };
     if (name === "react") return { ...React, useState: (initial) => stateOverrides ? [stateOverrides[stateIndex++], () => {}] : React.useState(initial) };
     if (name === "./api" || name === "@/services/api") return api;
     if (name === "next/link") return { default: ({ children, ...props }) => React.createElement("a", props, children) };
@@ -75,7 +76,7 @@ const specific = render(AssessmentEditor, { assessment: { ...definition, subject
 assert(specific.includes('type="checkbox" checked=""') && specific.includes("Synthetic topic"));
 loadOverrides = [{ error: "Coverage options unavailable" }];
 const failedEditor = render(AssessmentEditor, { timezone: "Asia/Manila", close() {}, saved() {} });
-assert(failedEditor.includes("Coverage options unavailable") && failedEditor.includes('disabled="">Save assessment'));
+assert(failedEditor.includes("Coverage options unavailable") && (failedEditor.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? []).some(button => button.includes('disabled=""') && button.includes('Save assessment')));
 loadOverrides = null;
 const resultEditor = render(AttemptEditor, { assessmentId: "definition", attempt: { ...attempt, score: 0, max_score: 10 }, timezone: "Asia/Manila", close() {}, saved() {} });
 assert(resultEditor.includes('value="0"') && resultEditor.includes("Save result") && resultEditor.includes("Asia/Manila"));

@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { StatusBadge } from "@/components/study-ui";
+import { PendingLabel, StatusBadge } from "@/components/study-ui";
 import { InterfaceIcon } from "@/components/interface-icon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/services/api";
 import { getFocus, startFocus, studyTimeError, type FocusData } from "@/services/analytics";
 import { getSubjects, getSubjectTopics } from "@/services/subjects";
 import { activityTypes, eventActivity, getEvent, getEvents, stopSession, type ActivityType, type StudyEvent } from "@/services/study-plan";
-import { LoadNotice } from "@/features/quizzes/shared";
+import { LoadNotice, QuizDialog } from "@/features/quizzes/shared";
 import { useStudyTimeLoad } from "@/features/analytics/use-study-time-load";
 import { dateLabel, zonedParts } from "@/features/study-plan/dates";
 import { eventOverlapsFocusDates, focusEventWindow } from "./event-window";
-import { elapsedSeconds, studyDuration, type ClockAnchor } from "@/features/analytics/presentation";
+import { elapsedSeconds, sessionSpansStudyDays, studyDuration, type ClockAnchor } from "@/features/analytics/presentation";
 import { SessionList } from "@/features/analytics/session-list";
 
 type Props = { subjectId: string; topicId: string; eventId: string; occurrenceDate: string };
@@ -106,23 +106,26 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
     } finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
 
+  const [confirmFinish, setConfirmFinish] = useState(false);
+  const older = !!active && !!snapshot && sessionSpansStudyDays(active.started_at, snapshot.data.server_now, snapshot.data.timezone);
   const activeSubject = subjects.data?.find((value) => value.id === active?.subject_id);
   const activeTopic = currentTopics.find((value) => value.id === active?.topic_id);
   return <>
-    <PageHeader title="Focus" description="One session. One clear objective." actions={<button type="button" className="ghost-button" disabled={busy || refreshing} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh"}</button>} />
+    <PageHeader className="focus-page-heading" title="Focus" description="One session. One clear objective." actions={<button type="button" className="ghost-button" disabled={busy || refreshing} onClick={() => void refresh()} aria-busy={refreshing}><PendingLabel pending={refreshing} idle={"Refresh"} busy={"Refreshing…"} /></button>} />
     <LoadNotice hasData={!!snapshot} layout="detail" label="Loading your focus workspace…" loading={refreshing} error={loadError} retry={() => void refresh()} />
     {actionError && <p className="auth-error" role="alert">{actionError}</p>}
     {notice && <p className="study-time-notice" role="status">{notice}</p>}
     {snapshot && <div className="focus-layout" data-active={!!active}>
       <div className="focus-main">
       <section className="focus-session ui-panel" aria-labelledby="focus-session-title" aria-busy={busy || refreshing}>
-        <header className="ui-section-heading"><h2 id="focus-session-title">{active ? "Session in progress" : "Start a session"}</h2><StatusBadge tone={active ? "success" : "neutral"}>{active ? "Recording study time" : "Ready to focus"}</StatusBadge></header>
+        <header className="ui-section-heading"><h2 id="focus-session-title">{active ? older ? "Session still open" : "Session in progress" : "Start a session"}</h2><StatusBadge tone={active ? "success" : "neutral"}>{active ? "Recording study time" : "Ready to focus"}</StatusBadge></header>
         {active ? <div className="focus-timer-stage">
           <p className="focus-current-context" data-subject={activeSubject?.code}><span className="subject-marker" aria-hidden="true" /><strong>{activeSubject?.code ?? (active.subject_id ? "Subject selected" : "General study")}</strong>{activeTopic && <span>{activeTopic.title}</span>}<span>{active.activity_type}</span>{active.study_event_id && <small>Linked to a planned event</small>}</p>
-          <div className="focus-timer" role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>
+          {older && <p className="open-session-notice" role="status">This session began on an earlier study day. It is still active in your account. Check its start time before saving the full elapsed duration.</p>}
+          <div className="focus-timer" data-long={older || undefined} role="timer" aria-label={`Elapsed study time ${studyDuration(elapsed)}`}>{studyDuration(elapsed)}</div>
           <p className="resource-note">Started <time dateTime={active.started_at}>{new Intl.DateTimeFormat("en", { timeZone: snapshot.data.timezone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(active.started_at))}</time> · elapsed time</p>
           {active.notes && <div className="focus-objective"><h3>Session notes</h3><p>{active.notes}</p></div>}
-          <button type="button" className="primary-button" aria-busy={busy} disabled={busy || refreshing} onClick={() => void act(true)}>{busy ? "Finishing…" : "Finish session"}</button>
+          <button type="button" className="primary-button" aria-busy={busy} disabled={busy || refreshing} onClick={() => older ? setConfirmFinish(true) : void act(true)}><PendingLabel pending={busy} idle="Finish session" busy="Finishing…" /></button>
           <p className="focus-finish-note">Final duration is recorded when you finish.</p>
         </div> : <><div className="focus-ready-stage"><InterfaceIcon name="focus" /><p>Choose your study context, then settle in.</p></div><form className="quiz-builder-form focus-session-form" onSubmit={(value) => { value.preventDefault(); void act(false); }}>
           <fieldset className="planner-form-grid" disabled={busy || refreshing}>
@@ -140,7 +143,7 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
           <LoadNotice hasData={events.data != null} loading={false} error={events.error} retry={events.retry} />
           {!event && <><LoadNotice hasData={subjects.data != null} loading={false} error={subjects.error} retry={subjects.retry} /><LoadNotice hasData={topics.data != null} loading={false} error={topics.error} retry={topics.retry} /></>}
           {((!events.loading && !validEvent) || (!event && !subjects.loading && !topics.loading && (!validSubject || !validTopic))) && <p className="auth-error" role="alert">Choose an available event or matching subject and topic before starting.</p>}
-          <button className="primary-button focus-start" aria-busy={busy} disabled={busy || refreshing || !validEvent || (!event && (!validSubject || !validTopic || (subject !== "" && topics.loading))) || (needsOccurrence && !occurrence)}>{busy ? "Starting…" : "Start session"}</button>
+          <button className="primary-button focus-start" aria-busy={busy} disabled={busy || refreshing || !validEvent || (!event && (!validSubject || !validTopic || (subject !== "" && topics.loading))) || (needsOccurrence && !occurrence)}><PendingLabel pending={busy} idle="Start session" busy="Starting…" /></button>
         </form></>}
       </section>
       </div>
@@ -150,5 +153,6 @@ export function FocusPage({ subjectId, topicId, eventId, occurrenceDate }: Props
         {!!subjects.data?.length && <section className="study-time-section ui-panel focus-subjects" aria-labelledby="focus-subjects"><header className="ui-section-heading"><h2 id="focus-subjects">Subjects</h2><Link className="quiz-text-link" href="/subjects">All subjects</Link></header><nav className="focus-subject-links" aria-label="Subject shortcuts">{subjects.data.map((value) => <Link className="secondary-button focus-subject-link" href={`/subjects/${encodeURIComponent(value.id)}`} key={value.id}><span className="subject-marker" data-color={value.color_key ?? undefined} aria-hidden="true" />{value.code}</Link>)}</nav></section>}
       </div>
     </div>}
+    {confirmFinish && active && <QuizDialog title="Finish this open session?" busy={busy} close={() => setConfirmFinish(false)}><p>This session started {new Intl.DateTimeFormat("en", { timeZone: snapshot!.data.timezone, dateStyle: "medium", timeStyle: "short" }).format(new Date(active.started_at))}.</p><p>The full elapsed time is {studyDuration(elapsed)}. Finishing records the duration from that start until now; it does not discard any study data.</p><div className="planner-dialog-actions"><button className="secondary-button" disabled={busy} onClick={() => setConfirmFinish(false)}>Keep session open</button><button className="primary-button" disabled={busy || refreshing} onClick={async () => { await act(true); setConfirmFinish(false); }} aria-busy={busy}><PendingLabel pending={busy} idle={"Finish and save full duration"} busy={"Finishing..."} /></button></div></QuizDialog>}
   </>;
 }

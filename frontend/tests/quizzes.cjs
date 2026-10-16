@@ -75,7 +75,7 @@ const importing = render(QuestionImport, { close() {}, saved() {} });
 assert(importing.includes("Preview CSV") && importing.includes("1 MiB") && !importing.includes("Confirm import"));
 const blockedImport = withStates(QuestionImport, { close() {}, saved() {} }, [{ name: "synthetic.csv", size: 12 }, { row_count: 2, valid_count: 1, duplicate_count: 0, proposed_inserts: 1, unchanged: 0, warnings: [], errors: [{ row: 2, field: "correct_answer", message: "Unknown key" }], sample: [], preview_token: null }, false, null]);
 assert(blockedImport.includes("Errors block all imports") && blockedImport.includes("Row 2") && blockedImport.includes("Unknown key"));
-assert(/disabled=""[^>]*>Confirm import/.test(blockedImport), "Preview errors must disable commit");
+assert((blockedImport.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? []).some(button => button.includes('disabled=""') && button.includes('Confirm import')), "Preview errors must disable commit");
 assert(render(QuizBuilder).includes("Quiz order") && render(QuizBuilder).includes("Save and start"));
 assert.equal(service.questionCsvError({ name: "questions.csv", size: 1048576 }), null);
 assert(service.questionCsvError({ name: "questions.csv", size: 1048577 }).includes("1 MiB"));

@@ -17,12 +17,27 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, t
   line-height: 1.5;
 }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
-input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea { transition: border-color var(--duration-fast) ease, background-color var(--duration-fast) ease; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea { transition: border-color var(--duration-fast) var(--ease-state), background-color var(--duration-fast) var(--ease-state); }
 input:not(:disabled):hover, select:not(:disabled):hover, textarea:not(:disabled):hover { border-color: color-mix(in srgb, var(--muted) 35%, transparent); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--accent-deep); outline-offset: 2px; }
 textarea { resize: vertical; }
 input:disabled, select:disabled, textarea:disabled { opacity: .6; cursor: not-allowed; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+/* Keep native select semantics/keyboard behavior, with one inset SVG chevron.
+   Native listboxes and forced-colors controls retain their platform affordances. */
+select:not([multiple]):is(:not([size]),[size="1"]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='m3 4.5 3 3 3-3' stroke='%23a3afb7' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 12px 12px;
+  padding-inline-end: 42px;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select:not([multiple]):is(:not([size]),[size="1"]) { height: var(--control-height); }
+label:has(> input:is([type="checkbox"],[type="radio"])) { display:inline-flex; flex-direction:row; align-items:center; gap:var(--space-2); min-height:var(--control-height); }
+@media(forced-colors:active) {
+  select:not([multiple]):is(:not([size]),[size="1"]) { appearance:auto; background-image:none; padding-inline-end:var(--space-3); }
+}
 summary { border-radius: var(--radius-sm); }
 input[type="file"] { overflow: hidden; }
 input[type="file"]::file-selector-button {
@@ -111,7 +126,7 @@ input[type="file"]:not(:disabled)::file-selector-button:hover { background: var(
 .resource-list > li:first-child > .resource-row, .quiz-list > li:first-child { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
 .resource-list > li:last-child > .resource-row, .quiz-list > li:last-child { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
 .topic-row:hover, .quiz-row:hover, .video-row:hover { background: var(--surface-raised); }
-.topic-row, .quiz-row, .resource-row, .video-row { transition: background-color var(--duration-fast) ease; }
+.topic-row, .quiz-row, .resource-row, .video-row { transition: background-color var(--duration-fast) var(--ease-state); }
 .video-list > li:last-child .video-row { border-bottom: 0; }
 .resource-state > span[data-status], .dashboard-event-status { display: inline-flex; width: fit-content; align-items: center; padding: 3px 8px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border); font-size: var(--text-small); }
 .resource-state [data-status="ready"], .dashboard-event-status[data-status="completed"] { background: var(--accent-soft); color: var(--accent-hover); }
@@ -256,7 +271,7 @@ input[type="file"]:not(:disabled)::file-selector-button:hover { background: var(
 .quiz-focus-workspace { max-width: 940px; margin-inline: auto; }
 .quiz-question { max-width: none; padding: var(--space-10); background: var(--surface); border-radius: var(--radius-panel); }
 .quiz-question h2 { max-width: 65ch; }
-.quiz-answer { background: var(--surface-secondary); border-color: transparent; transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease; }
+.quiz-answer { background: var(--surface-secondary); border-color: transparent; transition: background-color var(--duration-fast) var(--ease-state), border-color var(--duration-fast) var(--ease-state); }
 .quiz-answer[data-selected="true"] { border-color: var(--accent); }
 .quiz-answer[data-result="correct"] { border-color: var(--success); }
 .quiz-answer[data-result="incorrect"] { border-color: var(--danger); }

@@ -17,7 +17,7 @@ function load(file) {
   vm.runInNewContext(compiled, { module, exports: module.exports, require: local, Date, Intl, Error });
   return module.exports;
 }
-const { elapsedSeconds, rangeError, studyDuration } = load(path.join(src, "features/analytics/presentation.ts"));
+const { elapsedSeconds, rangeError, studyDuration, sessionSpansStudyDays } = load(path.join(src, "features/analytics/presentation.ts"));
 const { DailyChart, CalendarHeatmap, TimeBar } = load(path.join(src, "features/analytics/analytics-charts.tsx"));
 const { focusEventWindow, eventOverlapsFocusDates } = load(path.join(src, "features/focus/event-window.ts"));
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
@@ -27,6 +27,9 @@ assert.equal(elapsedSeconds("2026-10-09T12:00:00Z", anchor, 65000), 664, "Timer 
 assert.equal(elapsedSeconds("2026-10-09T12:20:00Z", anchor, 1500), 0, "Never display negative elapsed time");
 assert.equal(studyDuration(0), "0:00:00");
 assert.equal(studyDuration(90061), "25:01:01", "Long sessions do not wrap at 24 hours");
+assert.equal(sessionSpansStudyDays("2026-10-09T01:00:00Z", "2026-10-15T01:00:00Z", "Asia/Manila"), true, "Persisted multi-day sessions need recovery, not an invented duration cap");
+assert.equal(sessionSpansStudyDays("2026-10-15T01:00:00Z", "2026-10-15T08:00:00Z", "Asia/Manila"), false);
+assert.equal(sessionSpansStudyDays("2026-10-14T23:00:00Z", "2026-10-15T01:00:00Z", "Asia/Manila"), false, "Recovery follows the profile study day, not UTC midnight");
 assert.equal(rangeError("2026-07-12", "2026-10-09", "2026-10-09"), null, "90 inclusive days accepted");
 assert.match(rangeError("2026-07-11", "2026-10-09", "2026-10-09"), /at most 90/);
 assert.match(rangeError("2026-10-09", "2026-10-10", "2026-10-09"), /future/);
@@ -43,7 +46,8 @@ assert.match(heatmap, /<button type="button" aria-label="[^"]+" aria-pressed="fa
 assert.match(heatmap, /Select a date to see its study time and sessions/);
 assert.match(heatmap, /0:01:30, 1 completed sessions/);
 assert.match(heatmap, /data-level="0"/);
-assert.match(render(TimeBar, { label: "Actual", seconds: 0, maximum: 0 }), /width:0%/);
+assert.match(render(TimeBar, { label: "Actual", seconds: 0, maximum: 0 }), /--progress-scale:0/);
+assert.match(render(TimeBar, { label: "Actual", seconds: 1800, maximum: 3600 }), /--progress-scale:0.5/);
 assert.doesNotMatch(render(DailyChart, { daily: daily.map((day) => ({ ...day, duration_seconds: 0, session_count: 0 })) }), /NaN|Infinity/);
 const event = (start_at, end_at) => ({ start_at, end_at });
 // Havana repeats midnight; Santiago skips midnight. Loading a selector must not

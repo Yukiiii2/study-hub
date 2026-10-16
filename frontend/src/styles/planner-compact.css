@@ -1,0 +1,106 @@
+/* Compact date selection is a real calendar; desktop retains the full workspace. */
+.planner-compact { display:none; min-width:0; }
+.compact-date-picker { background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:12px; overflow:hidden; }
+.compact-weekdays,.compact-month-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+.compact-weekdays { padding:4px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
+.compact-month-grid { isolation:isolate; }
+.compact-day { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:0; min-height:56px; padding:6px 1px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--foreground); font:inherit; font-size:14px; cursor:pointer; font-variant-numeric:tabular-nums; }
+.compact-day[data-outside="true"] { color:var(--text-muted); }
+.compact-day[data-today="true"] .compact-day-number { border-bottom:2px solid var(--accent); color:var(--accent-hover); font-weight:650; }
+.compact-day[aria-pressed="true"] { background:var(--surface-strong); border-color:var(--accent); color:var(--foreground); }
+.compact-day-number { line-height:23px; min-width:24px; border-bottom:2px solid transparent; }
+.compact-day-markers { display:flex; align-items:center; justify-content:center; gap:3px; min-height:10px; }
+.compact-day-markers .subject-marker { width:5px; height:5px; }
+.compact-day-markers small { color:var(--muted); font-size:10px; line-height:10px; }
+.compact-day-agenda { padding:20px 0 4px; min-width:0; }
+.compact-day-agenda > header { display:flex; align-items:baseline; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; padding-bottom:12px; border-bottom:1px solid var(--border-soft); }
+.compact-day-agenda h3 { margin:0; font-size:17px; font-weight:600; letter-spacing:-.02em; }
+.compact-day-agenda header > span { font-size:12px; color:var(--text-muted); }
+.compact-agenda-content { min-height:140px; }
+.compact-agenda-list { list-style:none; margin:0; padding:0; }
+.compact-agenda-list > li { border-bottom:1px solid var(--border-soft); }
+.compact-agenda-event { display:grid; grid-template-columns:46px 7px minmax(0,1fr) 16px; gap:10px; align-items:start; min-height:84px; width:100%; min-width:0; padding:16px 0; color:var(--foreground); background:transparent; border:0; text-align:left; font:inherit; cursor:pointer; }
+.compact-agenda-event time { font-size:13px; font-variant-numeric:tabular-nums; color:var(--muted); }
+.compact-agenda-event > .subject-marker { margin-top:7px; }
+.compact-agenda-event > svg { width:16px; height:16px; color:var(--text-muted); margin-top:3px; }
+.compact-event-copy { display:flex; flex-direction:column; align-items:flex-start; gap:4px; min-width:0; }
+.compact-event-copy > span:first-child { color:var(--subject-color,var(--muted)); font-size:12px; }
+.compact-event-copy strong { font-size:14px; font-weight:550; overflow-wrap:anywhere; }
+.compact-event-copy .status-badge { font-size:11px; padding:2px 5px; }
+.compact-agenda-empty { min-height:62px; padding:20px 0 8px; margin:0; color:var(--muted); font-size:14px; }
+.compact-agenda-add { margin-top:14px; }
+.compact-agenda-add > svg { width:16px; height:16px; }
+@container study-planner (max-width:700px) {
+  .planner-compact { display:block; }.planner-period-empty { display:none; }
+}
+@media(max-width:959px) {
+  .planner-compact { display:block; }.planner-period-empty { display:none; }
+  .compact-day { min-height:64px; }
+  .planner-calendar-toolbar { position:relative; display:block; }
+  .planner-period-controls { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:10px; width:100%; }
+  .planner-period-controls > h2 { grid-column:1/-1; grid-row:1; padding-right:148px; margin:0; min-height:44px; align-content:center; font-size:18px; }
+  .planner-period-controls > button { grid-row:2; margin:0; }
+  .planner-period-controls > button:nth-child(2) { justify-self:center; min-width:96px; }
+  .planner-view-controls { position:absolute; top:0; right:0; margin:0; padding:2px; }
+  .planner-view-controls > button { min-height:38px; padding:7px 10px; font-size:12px; }
+  .planner-timezone { font-size:12px; margin-block:12px; }
+}
+@media(max-width:600px) {
+  .compact-date-picker { padding:10px 6px; }
+  .compact-month-grid,.compact-weekdays { gap:2px; }
+  .compact-day { min-height:54px; }
+  .compact-agenda-add { width:100%; }
+}
+
+/* Mobile Plan polish: one calendar-to-agenda surface; desktop is unchanged. */
+@media(max-width:959px) {
+  .plan-mobile .planner-heading.page-heading.page-header { margin-bottom:8px; }
+  .plan-mobile .planner-tabs { width:100%; gap:20px; margin:0 0 16px; }
+  .plan-mobile .planner-calendar-toolbar { margin-top:0; }
+  .plan-mobile .planner-period-controls { gap:8px; }
+  .plan-mobile .planner-period-controls > h2 { padding-right:136px; font-size:18px; line-height:1.35; }
+  .plan-mobile .planner-view-controls { gap:2px; border:1px solid var(--border-soft); }
+  .plan-mobile .planner-view-controls > button { min-height:44px; padding:8px 10px; }
+  .plan-mobile .planner-timezone { margin:10px 0 12px; line-height:1.5; color:var(--muted); }
+
+  .plan-mobile .planner-compact { background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-panel); }
+  .plan-mobile .compact-date-picker { border:0; border-radius:var(--radius-panel) var(--radius-panel) 0 0; padding:12px 6px 8px; }
+  .plan-mobile .compact-weekdays,.plan-mobile .compact-month-grid { gap:1px; }
+  .plan-mobile .compact-weekdays { padding:2px 0 8px; color:var(--muted); font-size:12px; line-height:20px; }
+  .plan-mobile .compact-day { gap:2px; min-height:54px; padding:6px 1px; border-radius:var(--radius-control); font-weight:500; -webkit-tap-highlight-color:transparent; }
+  .plan-mobile .compact-day-number { display:grid; place-items:center; min-width:28px; height:28px; border:1px solid transparent; border-radius:6px; line-height:1; }
+  .plan-mobile .compact-day[data-today="true"] .compact-day-number { border:1px solid color-mix(in srgb,var(--accent) 55%,var(--border-soft)); background:var(--accent-soft); color:var(--accent-hover); font-weight:650; }
+  .plan-mobile .compact-day[aria-pressed="true"] { background:color-mix(in srgb,var(--accent) 9%,var(--surface)); border-color:color-mix(in srgb,var(--accent) 55%,var(--border-soft)); }
+  .plan-mobile .compact-day:focus-visible { outline:2px solid var(--accent-hover); outline-offset:-2px; }
+  .plan-mobile .compact-day-markers { min-height:8px; gap:3px; }
+  .plan-mobile .compact-day-markers .subject-marker { width:5px; height:5px; }
+  .plan-mobile .compact-week-strip .compact-day { min-height:76px; }
+
+  .plan-mobile .compact-day-agenda { border-top:1px solid var(--border-soft); padding:16px 12px 12px; }
+  .plan-mobile .compact-day-agenda > header { align-items:center; gap:8px; border:0; padding-bottom:0; }
+  .plan-mobile .compact-day-agenda h3 { font-size:16px; line-height:1.4; }
+  .plan-mobile .compact-day-agenda header > span { padding:4px 7px; border-radius:6px; background:var(--surface-secondary); color:var(--muted); font-size:12px; line-height:18px; }
+  .plan-mobile .compact-agenda-content { min-height:0; }
+  .plan-mobile .compact-agenda-list { margin-top:4px; }
+  .plan-mobile .compact-agenda-list > li:last-child { border-bottom:0; }
+  .plan-mobile .compact-agenda-event { gap:8px; padding-block:14px; }
+  .plan-mobile .compact-agenda-event time { color:var(--muted); }
+  .plan-mobile .compact-event-copy strong { line-height:1.45; }
+  .plan-mobile .compact-agenda-empty { min-height:0; margin:0; padding:14px 0 0; line-height:1.6; }
+  .plan-mobile .compact-agenda-add { width:100%; margin-top:16px; }
+
+  .plan-mobile :is(.planner-tabs,.planner-view-controls) > button {
+    transition:background-color var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out),border-color var(--duration-fast) var(--ease-out);
+  }
+  .plan-mobile .compact-day {
+    transition:background-color var(--duration-fast) var(--ease-out),border-color var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out),transform var(--duration-fast) var(--ease-out);
+  }
+  .plan-mobile .compact-day-number { transition:background-color var(--duration-fast) var(--ease-out),border-color var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out); }
+  .plan-mobile .compact-day:active { background:var(--surface-strong); transform:translateY(1px); }
+}
+
+/* Existing agenda/month and native-sheet motion uses the shared 160/200ms tokens.
+   Keep movement opt-in; reduced-motion users retain immediate state feedback. */
+@media(max-width:959px) and (prefers-reduced-motion:reduce) {
+  .plan-mobile .compact-day:active { transform:none; }
+}
